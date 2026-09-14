@@ -4,7 +4,7 @@ import org.example.dto.*;
 import org.example.entity.Cronjob;
 import org.example.entity.CronjobExecution;
 import org.example.entity.ExecutionInfo;
-import org.example.exception.ApiException;
+import org.springframework.web.server.ResponseStatusException;
 import org.example.repository.CronjobExecutionRepository;
 import org.example.repository.ExecutionInfoRepository;
 import org.springframework.data.domain.Page;
@@ -114,7 +114,7 @@ public class CronjobExecutionService {
 
         Set<Long> requestIds = request.getItems().stream().map(BatchStatusItem::getId).collect(Collectors.toSet());
         if (requestIds.size() != request.getItems().size()) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Duplicate mapping id");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Duplicate mapping id");
         }
         Set<Long> databaseIds = mappings.stream().map(CronjobExecution::getId).collect(Collectors.toSet());
         if (!databaseIds.equals(requestIds)) {
@@ -138,24 +138,24 @@ public class CronjobExecutionService {
     }
 
     private CronjobExecution getEntity(Long id) {
-        return repository.findById(id).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Cronjob execution not found"));
+        return repository.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Cronjob execution not found"));
     }
 
     private ExecutionInfo getExecution(Long id) {
         ExecutionInfo execution = executionInfoRepository.findOne(id);
         if (execution == null) {
-            throw new ApiException(HttpStatus.NOT_FOUND, "Execution info not found");
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Execution info not found");
         }
         return execution;
     }
 
     private void validateExecutionElements(ExecutionInfo execution) {
         if (execution.getExecutionElements() == null || execution.getExecutionElements().isEmpty()) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Execution must have at least one execution element");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Execution must have at least one execution element");
         }
     }
 
-    private ApiException conflict(String message) {
-        return new ApiException(HttpStatus.CONFLICT, message);
+    private ResponseStatusException conflict(String message) {
+        return new ResponseStatusException(HttpStatus.CONFLICT, message);
     }
 }

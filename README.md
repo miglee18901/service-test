@@ -80,7 +80,7 @@ mvn test
 ## API conventions
 
 - `GET` and `DELETE` endpoints receive the resource ID in the URL.
-- `POST`, `PUT`, and `PATCH` endpoints used for creation or updates receive IDs in the JSON request body.
+- Resource IDs are passed in URL path variables for `GET`, `PUT`, `PATCH`, and `DELETE` endpoints.
 - Pagination uses Spring parameters such as `page`, `size`, and `sort`.
 - Page size must be between 1 and 100.
 
@@ -116,11 +116,10 @@ Supported sort properties: `id`, `name`, and `cronValue`.
 ### Update a cron job
 
 ```http
-PUT /api/cronjobs
+PUT /api/cronjobs/1
 Content-Type: application/json
 
 {
-  "id": 1,
   "name": "Run every ten minutes",
   "cronValue": "0 */10 * * * *"
 }
@@ -133,11 +132,10 @@ Changing `cronValue` cancels the old scheduled task and registers it again with 
 The client sends every mapping ID displayed on the page together with its expected current status. If another session has changed a status, the request returns a conflict and the client should reload the page.
 
 ```http
-PATCH /api/cronjobs/executions/status
+PATCH /api/cronjobs/1/executions/status
 Content-Type: application/json
 
 {
-  "cronjobId": 1,
   "status": true,
   "items": [
     {
@@ -185,11 +183,10 @@ Supported sort properties: `id`, `status`, `cronjob.id`, and `executionInfo.id`.
 ### Update a mapping
 
 ```http
-PUT /api/cronjob-executions
+PUT /api/cronjob-executions/10
 Content-Type: application/json
 
 {
-  "id": 10,
   "cronjobId": 1,
   "executionInfoId": 100,
   "status": true
@@ -199,11 +196,10 @@ Content-Type: application/json
 ### Change one mapping status
 
 ```http
-PATCH /api/cronjob-executions/status
+PATCH /api/cronjob-executions/10/status
 Content-Type: application/json
 
 {
-  "id": 10,
   "expectedStatus": true,
   "status": false
 }

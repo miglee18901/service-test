@@ -33,16 +33,15 @@ class CronjobControllerTest {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Test
-    void updateShouldReadCronjobIdFromBody() throws Exception {
-        CronjobUpdateRequest request = new CronjobUpdateRequest();
-        request.setId(9L);
+    void updateShouldReadCronjobIdFromPath() throws Exception {
+        CronjobRequest request = new CronjobRequest();
         request.setName("Daily");
         request.setCronValue("0 */5 * * * *");
         when(cronjobService.update(eq(9L), any()))
                 .thenReturn(new CronjobResponse(
                         9L, "Daily", "0 */5 * * * *"));
 
-        mockMvc().perform(put("/api/cronjobs")
+        mockMvc().perform(put("/api/cronjobs/{id}", 9L)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -52,18 +51,17 @@ class CronjobControllerTest {
     }
 
     @Test
-    void batchStatusShouldReadCronjobIdFromBody() throws Exception {
+    void batchStatusShouldReadCronjobIdFromPath() throws Exception {
         BatchStatusItem item = new BatchStatusItem();
         item.setId(11L);
         item.setExpectedStatus(true);
         BatchChangeStatusRequest request = new BatchChangeStatusRequest();
-        request.setCronjobId(7L);
         request.setItems(Collections.singletonList(item));
         request.setStatus(false);
         when(executionService.changeAllStatuses(eq(7L), any()))
                 .thenReturn(Collections.emptyList());
 
-        mockMvc().perform(patch("/api/cronjobs/executions/status")
+        mockMvc().perform(patch("/api/cronjobs/{cronjobId}/executions/status", 7L)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk());

@@ -11,9 +11,6 @@ import java.util.List;
 @Getter
 @Setter
 public class BatchChangeStatusRequest {
-    @NotNull(message = "Cronjob id is required")
-    private Long cronjobId;
-
     @NotEmpty(message = "Items must not be empty")
     @Valid
     private List<BatchStatusItem> items;

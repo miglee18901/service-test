@@ -28,16 +28,14 @@ class CronjobExecutionControllerTest {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Test
-    void updateShouldReadMappingIdFromBody() throws Exception {
-        CronjobExecutionUpdateRequest request =
-                new CronjobExecutionUpdateRequest();
-        request.setId(15L);
+    void updateShouldReadMappingIdFromPath() throws Exception {
+        CronjobExecutionRequest request = new CronjobExecutionRequest();
         request.setCronjobId(1L);
         request.setExecutionInfoId(10L);
         request.setStatus(true);
         when(service.update(eq(15L), any())).thenReturn(response(true));
 
-        mockMvc().perform(put("/api/cronjob-executions")
+        mockMvc().perform(put("/api/cronjob-executions/{id}", 15L)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -47,14 +45,13 @@ class CronjobExecutionControllerTest {
     }
 
     @Test
-    void changeStatusShouldReadMappingIdFromBody() throws Exception {
+    void changeStatusShouldReadMappingIdFromPath() throws Exception {
         ChangeStatusRequest request = new ChangeStatusRequest();
-        request.setId(15L);
         request.setExpectedStatus(true);
         request.setStatus(false);
         when(service.changeStatus(eq(15L), any())).thenReturn(response(false));
 
-        mockMvc().perform(patch("/api/cronjob-executions/status")
+        mockMvc().perform(patch("/api/cronjob-executions/{id}/status", 15L)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())

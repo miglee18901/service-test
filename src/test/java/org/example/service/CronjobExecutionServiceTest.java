@@ -5,7 +5,7 @@ import org.example.entity.Cronjob;
 import org.example.entity.CronjobExecution;
 import org.example.entity.ExecutionElement;
 import org.example.entity.ExecutionInfo;
-import org.example.exception.ApiException;
+import org.springframework.web.server.ResponseStatusException;
 import org.example.repository.CronjobExecutionRepository;
 import org.example.repository.ExecutionInfoRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -75,8 +75,8 @@ class CronjobExecutionServiceTest {
         when(cronjobService.getEntity(1L)).thenReturn(cronjob);
         when(executionInfoRepository.findOne(10L)).thenReturn(execution);
 
-        ApiException exception = assertThrows(
-                ApiException.class,
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
                 () -> service.create(request(1L, 10L, true)));
 
         assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
@@ -91,14 +91,14 @@ class CronjobExecutionServiceTest {
         when(executionInfoRepository.findOne(10L)).thenReturn(execution);
         when(repository.existsByExecutionInfoId(10L)).thenReturn(true);
 
-        ApiException exception = assertThrows(
-                ApiException.class,
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
                 () -> service.create(request(1L, 10L, true)));
 
         assertEquals(HttpStatus.CONFLICT, exception.getStatus());
         assertEquals(
                 "Execution already belongs to another cronjob",
-                exception.getMessage());
+                exception.getReason());
     }
 
     @Test
@@ -124,13 +124,13 @@ class CronjobExecutionServiceTest {
         when(repository.updateStatusIfMatches(100L, true, false))
                 .thenReturn(0);
 
-        ApiException exception = assertThrows(
-                ApiException.class,
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
                 () -> service.changeStatus(
                         100L, statusRequest(true, false)));
 
         assertEquals(HttpStatus.CONFLICT, exception.getStatus());
-        assertTrue(exception.getMessage().contains("reload the page"));
+        assertTrue(exception.getReason().contains("reload the page"));
         verifyNoInteractions(schedulerService);
     }
 
@@ -143,8 +143,8 @@ class CronjobExecutionServiceTest {
         BatchChangeStatusRequest request =
                 batchRequest(false, item(100L, true));
 
-        ApiException exception = assertThrows(
-                ApiException.class,
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
                 () -> service.changeAllStatuses(1L, request));
 
         assertEquals(HttpStatus.CONFLICT, exception.getStatus());
@@ -190,7 +190,6 @@ class CronjobExecutionServiceTest {
     private ChangeStatusRequest statusRequest(
             boolean expectedStatus, boolean status) {
         ChangeStatusRequest request = new ChangeStatusRequest();
-        request.setId(100L);
         request.setExpectedStatus(expectedStatus);
         request.setStatus(status);
         return request;
@@ -199,7 +198,6 @@ class CronjobExecutionServiceTest {
     private BatchChangeStatusRequest batchRequest(
             boolean status, BatchStatusItem... items) {
         BatchChangeStatusRequest request = new BatchChangeStatusRequest();
-        request.setCronjobId(1L);
         request.setStatus(status);
         request.setItems(Arrays.asList(items));
         return request;

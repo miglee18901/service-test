@@ -1,0 +1,355 @@
+SERVICE-TEST API CONTRACT CHO FRONTEND
+======================================
+
+Base URL: /api
+Content-Type: application/json
+
+QUY ƯỚC RESPONSE
+----------------
+
+Các API cronjob và cronjob-execution trả về:
+
+{
+  "status": 200,
+  "message": "Success",
+  "data": ...
+}
+
+Response phân trang của Spring:
+
+{
+  "content": [],
+  "totalElements": 0,
+  "totalPages": 0,
+  "size": 20,
+  "number": 0,
+  "first": true,
+  "last": true,
+  "empty": true
+}
+
+Query phân trang dùng chung:
+- page: số trang, bắt đầu từ 0; mặc định 0
+- size: số bản ghi mỗi trang; hợp lệ từ 1 đến 100; mặc định 20
+- sort: property,direction; có thể truyền nhiều lần
+- Ví dụ: ?page=0&size=20&sort=name,asc
+
+Lưu ý lỗi:
+- 400: request/validation không hợp lệ
+- 404: không tìm thấy tài nguyên
+- 409: dữ liệu trùng hoặc trạng thái phía FE đã cũ
+- Backend dùng error response mặc định của Spring, không bọc lỗi trong BaseResponse.
+
+
+1. CRONJOB
+==========
+
+1.1. Tạo cronjob
+
+POST /api/cronjobs
+
+Body:
+{
+  "name": "Daily test",
+  "cronValue": "0 */5 * * * *"
+}
+
+Validation:
+- name: bắt buộc, tối đa 255 ký tự
+- cronValue: bắt buộc, tối đa 100 ký tự
+- cronValue có đúng 6 trường:
+  second minute hour day-of-month month day-of-week
+
+Success: HTTP 200
+{
+  "status": 200,
+  "message": "Created successfully",
+  "data": {
+    "id": 1,
+    "name": "Daily test",
+    "cronValue": "0 */5 * * * *"
+  }
+}
+
+1.2. Lấy cronjob theo ID
+
+GET /api/cronjobs/{id}
+
+Path:
+- id: ID cronjob
+
+Success: HTTP 200, data là CronjobResponse.
+
+1.3. Tìm kiếm cronjob
+
+GET /api/cronjobs
+
+Query:
+- keyword: không bắt buộc, mặc định rỗng
+- page, size, sort
+
+Sort property được phép:
+- id
+- name
+- cronValue
+
+Ví dụ:
+GET /api/cronjobs?keyword=daily&page=0&size=20&sort=name,asc
+
+Success: HTTP 200, data là Page<CronjobResponse>.
+
+1.4. Cập nhật cronjob
+
+PUT /api/cronjobs/{id}
+
+Path:
+- id: ID cronjob cần cập nhật
+
+Body:
+{
+  "name": "Daily test updated",
+  "cronValue": "0 */10 * * * *"
+}
+
+Success: HTTP 200, data là CronjobResponse sau cập nhật.
+
+1.5. Xóa cronjob
+
+DELETE /api/cronjobs/{id}
+
+Path:
+- id: ID cronjob cần xóa
+
+Success:
+{
+  "status": 200,
+  "message": "Deleted successfully",
+  "data": null
+}
+
+Cronjob không thể xóa nếu vẫn còn cronjob-execution liên kết.
+
+1.6. Đổi trạng thái toàn bộ execution của một cronjob
+
+PATCH /api/cronjobs/{cronjobId}/executions/status
+
+Path:
+- cronjobId: ID cronjob
+
+Body:
+{
+  "items": [
+    {
+      "id": 100,
+      "expectedStatus": true
+    },
+    {
+      "id": 101,
+      "expectedStatus": false
+    }
+  ],
+  "status": false
+}
+
+Ý nghĩa:
+- items phải chứa đầy đủ tất cả mapping hiện tại của cronjob.
+- id là ID cronjob-execution.
+- expectedStatus là trạng thái FE đang hiển thị.
+- status là trạng thái mới áp dụng cho toàn bộ items.
+- Nếu DB khác expectedStatus hoặc danh sách đã thay đổi, API trả 409.
+- Khi nhận 409, FE cần tải lại dữ liệu trước khi thử lại.
+
+Success: HTTP 200, data là danh sách CronjobExecutionResponse.
+
+
+2. CRONJOB EXECUTION
+====================
+
+CronjobExecutionResponse:
+{
+  "id": 100,
+  "cronjobId": 1,
+  "cronjobName": "Daily test",
+  "executionInfoId": 10,
+  "executionInfoName": "Regression test",
+  "status": true
+}
+
+2.1. Tạo cronjob-execution
+
+POST /api/cronjob-executions
+
+Body:
+{
+  "cronjobId": 1,
+  "executionInfoId": 10,
+  "status": true
+}
+
+Tất cả field đều bắt buộc.
+
+Success: HTTP 200, data là CronjobExecutionResponse.
+
+2.2. Lấy cronjob-execution theo ID
+
+GET /api/cronjob-executions/{id}
+
+Path:
+- id: ID cronjob-execution
+
+Success: HTTP 200, data là CronjobExecutionResponse.
+
+2.3. Tìm kiếm cronjob-execution
+
+GET /api/cronjob-executions
+
+Query:
+- keyword: không bắt buộc, mặc định rỗng
+- cronjobId: không bắt buộc
+- executionInfoId: không bắt buộc
+- status: không bắt buộc, true hoặc false
+- page, size, sort
+
+Sort property được phép:
+- id
+- status
+- cronjob.id
+- executionInfo.id
+
+Ví dụ:
+GET /api/cronjob-executions?cronjobId=1&status=true&page=0&size=20&sort=id,desc
+
+Success: HTTP 200, data là Page<CronjobExecutionResponse>.
+
+2.4. Cập nhật cronjob-execution
+
+PUT /api/cronjob-executions/{id}
+
+Path:
+- id: ID cronjob-execution cần cập nhật
+
+Body:
+{
+  "cronjobId": 1,
+  "executionInfoId": 10,
+  "status": true
+}
+
+Success: HTTP 200, data là CronjobExecutionResponse sau cập nhật.
+
+2.5. Xóa cronjob-execution
+
+DELETE /api/cronjob-executions/{id}
+
+Path:
+- id: ID cronjob-execution cần xóa
+
+Success:
+{
+  "status": 200,
+  "message": "Deleted successfully",
+  "data": null
+}
+
+2.6. Đổi trạng thái một cronjob-execution
+
+PATCH /api/cronjob-executions/{id}/status
+
+Path:
+- id: ID cronjob-execution
+
+Body:
+{
+  "expectedStatus": true,
+  "status": false
+}
+
+Ý nghĩa:
+- expectedStatus là trạng thái FE đang hiển thị.
+- status là trạng thái mới.
+- Nếu DB không còn giống expectedStatus, API trả 409.
+- Khi nhận 409, FE cần tải lại dữ liệu trước khi thử lại.
+
+Success: HTTP 200, data là CronjobExecutionResponse.
+
+
+3. EXECUTION INFO
+=================
+
+3.1. Lấy danh sách execution info
+
+GET /api/execution-info
+
+Query:
+- page, size, sort theo Pageable của Spring
+
+Endpoint này trả trực tiếp Page<ExecutionInfo>, không bọc BaseResponse.
+
+Các field chính của ExecutionInfo:
+- id
+- name
+- description
+- state
+- executionLevel
+- user
+- executionTime
+- domainId
+- executionName
+- timeExecute
+- userExecute
+- currentState
+- createTime
+- startExecutionTime
+- completedTime
+- envInfo
+- posIndex
+- categoryId
+- isNumberTest
+
+executionElements bị ẩn khỏi JSON.
+
+3.2. Bắt đầu execution
+
+POST /api/execution-info/{id}/start
+
+Path:
+- id: ID execution info
+
+Header:
+- X-User: username; không bắt buộc, mặc định "anonymous"
+
+Không có request body.
+
+Success theo nghiệp vụ:
+{
+  "status": 200,
+  "message": "Start successfully !",
+  "data": {
+    "executionInfoHistoryId": "123",
+    "maxExecutionHistory": "10"
+  }
+}
+
+Lưu ý: endpoint start hiện có một số lỗi nghiệp vụ trả HTTP 200 nhưng field
+status trong body là 409. FE cần kiểm tra cả field status trong response body.
+
+
+TÓM TẮT ENDPOINT
+================
+
+POST   /api/cronjobs
+GET    /api/cronjobs/{id}
+GET    /api/cronjobs
+PUT    /api/cronjobs/{id}
+DELETE /api/cronjobs/{id}
+PATCH  /api/cronjobs/{cronjobId}/executions/status
+
+POST   /api/cronjob-executions
+GET    /api/cronjob-executions/{id}
+GET    /api/cronjob-executions
+PUT    /api/cronjob-executions/{id}
+DELETE /api/cronjob-executions/{id}
+PATCH  /api/cronjob-executions/{id}/status
+
+GET    /api/execution-info
+POST   /api/execution-info/{id}/start

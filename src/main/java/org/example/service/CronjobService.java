@@ -3,12 +3,12 @@ package org.example.service;
 import org.example.dto.CronjobRequest;
 import org.example.dto.CronjobResponse;
 import org.example.entity.Cronjob;
-import org.example.exception.ApiException;
 import org.example.repository.CronjobExecutionRepository;
 import org.example.repository.CronjobRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.scheduling.support.CronExpression;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -82,39 +82,50 @@ public class CronjobService {
     }
 
     public Cronjob getEntity(Long id) {
-        return repository.findById(id).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Cronjob not found"));
+        return repository.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Cronjob not found"));
     }
 
     public static void validateCron(String cronValue) {
+        if (cronValue == null || cronValue.trim().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cron expression is required");
+        }
+
+        String normalizedCron = cronValue.trim();
+        if (normalizedCron.split("\\s+").length != 6) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cron expression must contain exactly 6 fields: second minute hour day-of-month month day-of-week");
+        }
+
         try {
-            CronExpression.parse(cronValue == null ? "" : cronValue.trim());
+            CronExpression.parse(normalizedCron);
         } catch (IllegalArgumentException exception) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Invalid cron expression");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid cron expression");
         }
     }
 
     private String normalizeName(String name) {
         String normalized = name == null ? "" : name.trim();
         if (normalized.isEmpty()) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Cronjob name is required");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cronjob name is required");
         }
         return normalized;
     }
 
-    private ApiException conflict(String message) {
-        return new ApiException(HttpStatus.CONFLICT, message);
+    private ResponseStatusException conflict(String message) {
+        return new ResponseStatusException(HttpStatus.CONFLICT, message);
     }
 
     static void afterCommit(Runnable runnable) {
-        if (TransactionSynchronizationManager.isActualTransactionActive()) {
-            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-                @Override
-                public void afterCommit() {
-                    runnable.run();
-                }
-            });
+        if (TransactionSynchronizationManager.isActualTransactionActive() && TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(
+                    new TransactionSynchronization() {
+                        @Override
+                        public void afterCommit() {
+                            runnable.run();
+                        }
+                    });
         } else {
             runnable.run();
         }
     }
+
 }

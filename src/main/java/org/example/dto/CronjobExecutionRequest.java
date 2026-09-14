@@ -16,4 +16,5 @@ public class CronjobExecutionRequest {
 
     @NotNull(message = "Status is required")
     private Boolean status;
+
 }

@@ -16,4 +16,5 @@ public class CronjobRequest {
     @NotBlank(message = "Cron value is required")
     @Size(max = 100, message = "Cron value must not exceed 100 characters")
     private String cronValue;
+
 }

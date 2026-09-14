@@ -3,7 +3,7 @@ package org.example.service;
 import org.example.dto.CronjobRequest;
 import org.example.dto.CronjobResponse;
 import org.example.entity.Cronjob;
-import org.example.exception.ApiException;
+import org.springframework.web.server.ResponseStatusException;
 import org.example.repository.CronjobExecutionRepository;
 import org.example.repository.CronjobRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -57,12 +57,34 @@ class CronjobServiceTest {
 
     @Test
     void createShouldRejectInvalidCronExpression() {
-        ApiException exception = assertThrows(
-                ApiException.class,
-                () -> service.create(request("Daily test", "invalid")));
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
+                () -> service.create(request("Daily test", "0 99 * * * *")));
 
         assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
-        assertEquals("Invalid cron expression", exception.getMessage());
+        assertEquals("Invalid cron expression", exception.getReason());
+        verify(repository, never()).save(any());
+    }
+
+    @Test
+    void createShouldRejectBlankCronExpression() {
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
+                () -> service.create(request("Daily test", "   ")));
+
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
+        assertEquals("Cron expression is required", exception.getReason());
+        verify(repository, never()).save(any());
+    }
+
+    @Test
+    void createShouldRejectCronExpressionWithoutSixFields() {
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
+                () -> service.create(request("Daily test", "*/5 * * * *")));
+
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
+        assertTrue(exception.getReason().contains("exactly 6 fields"));
         verify(repository, never()).save(any());
     }
 
@@ -70,8 +92,8 @@ class CronjobServiceTest {
     void createShouldRejectDuplicateName() {
         when(repository.existsByNameIgnoreCase("Daily test")).thenReturn(true);
 
-        ApiException exception = assertThrows(
-                ApiException.class,
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
                 () -> service.create(
                         request("Daily test", "0 */5 * * * *")));
 
@@ -110,8 +132,8 @@ class CronjobServiceTest {
         when(repository.findById(1L)).thenReturn(Optional.of(existing));
         when(mappingRepository.existsByCronjobId(1L)).thenReturn(true);
 
-        ApiException exception =
-                assertThrows(ApiException.class, () -> service.delete(1L));
+        ResponseStatusException exception =
+                assertThrows(ResponseStatusException.class, () -> service.delete(1L));
 
         assertEquals(HttpStatus.CONFLICT, exception.getStatus());
         verify(repository, never()).delete(any());

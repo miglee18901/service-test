@@ -13,6 +13,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
 import org.springframework.scheduling.Trigger;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 
@@ -109,7 +110,7 @@ class DynamicCronjobSchedulerServiceTest {
                 .thenReturn(Collections.singletonList(mapping));
         when(executionStartService.start(
                 eq(20L), any(UserDetails.class)))
-                .thenReturn(new BaseResponse<>(200, "Success", null));
+                .thenReturn(new BaseResponse<>(HttpStatus.OK.value(), "Success", null));
 
         service.schedule(cronjob);
         runnableCaptor.getValue().run();
