@@ -10,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.scheduling.support.CronExpression;
 import org.springframework.scheduling.support.CronTrigger;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
@@ -36,7 +37,7 @@ public class DynamicCronjobSchedulerService {
             CronjobRepository cronjobRepository,
             CronjobExecutionRepository mappingRepository,
             ExecutionStartService executionStartService,
-            ThreadPoolTaskScheduler scheduler) {
+            @Qualifier("cronjobTaskScheduler") ThreadPoolTaskScheduler scheduler) {
         this.cronjobRepository = cronjobRepository;
         this.mappingRepository = mappingRepository;
         this.executionStartService = executionStartService;

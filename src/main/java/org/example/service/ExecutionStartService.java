@@ -38,7 +38,7 @@ public class ExecutionStartService {
             ExecutionUserLogService executionUserLogService,
             MockExecutionApiClient restTemplate,
             ObjectMapper objectMapper,
-            @Qualifier("executionTaskExecutor") TaskExecutor taskExecutor) {
+            @Qualifier("taskExecutor") TaskExecutor taskExecutor) {
         this.executionInfoRepository = executionInfoRepository;
         this.executionInfoHistoryService = executionInfoHistoryService;
         this.executionUserLogService = executionUserLogService;
