@@ -1,8 +1,9 @@
 package org.example.controller;
 
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.annotations.ApiOperation;
+
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.example.dto.BaseResponse;
 import org.example.dto.ChangeStatusRequest;
@@ -21,12 +22,12 @@ import javax.validation.Valid;
 @Tag(name = "Cronjob Execution", description = "Cronjob execution mapping API")
 @RequestMapping(value = "/cronjob-executions", produces = {"application/json;charset=utf-8"})
 public interface CronjobExecutionApi {
-    @Operation(summary = "Create a cronjob execution mapping")
+    @ApiOperation(value = "Create a cronjob execution mapping", notes = "Associates an execution with a cronjob.", response = CronjobExecutionResponse.class, tags = {"Cronjob Execution"})
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Created successfully"),
-            @ApiResponse(responseCode = "400", description = "Invalid request"),
-            @ApiResponse(responseCode = "404", description = "Cronjob or execution not found"),
-            @ApiResponse(responseCode = "409", description = "Mapping already exists")
+            @ApiResponse(code = 200, message = "Created successfully", response = CronjobExecutionResponse.class),
+            @ApiResponse(code = 400, message = "Invalid request", response = BaseResponse.class),
+            @ApiResponse(code = 404, message = "Cronjob or execution not found", response = BaseResponse.class),
+            @ApiResponse(code = 409, message = "Mapping already exists", response = BaseResponse.class)
     })
     @RequestMapping(
             method = RequestMethod.POST,
@@ -34,10 +35,10 @@ public interface CronjobExecutionApi {
             consumes = {"application/json;charset=utf-8"})
     BaseResponse<CronjobExecutionResponse> create(@Valid @RequestBody CronjobExecutionRequest request);
 
-    @Operation(summary = "Get a cronjob execution mapping by ID")
+    @ApiOperation(value = "Get a cronjob execution mapping by ID", notes = "Returns the execution mapping identified by the supplied ID.", response = CronjobExecutionResponse.class, tags = {"Cronjob Execution"})
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Success"),
-            @ApiResponse(responseCode = "404", description = "Mapping not found")
+            @ApiResponse(code = 200, message = "Success", response = CronjobExecutionResponse.class),
+            @ApiResponse(code = 404, message = "Mapping not found", response = BaseResponse.class)
     })
     @RequestMapping(
             value = "/{id}",
@@ -45,8 +46,8 @@ public interface CronjobExecutionApi {
             produces = {"application/json;charset=utf-8"})
     BaseResponse<CronjobExecutionResponse> findById(@PathVariable Long id);
 
-    @Operation(summary = "Search cronjob execution mappings")
-    @ApiResponse(responseCode = "200", description = "Success")
+    @ApiOperation(value = "Search cronjob execution mappings", notes = "Returns pageable execution mappings filtered by the supplied criteria.", response = CronjobExecutionResponse.class, responseContainer = "List", tags = {"Cronjob Execution"})
+    @ApiResponse(code = 200, message = "Success", response = CronjobExecutionResponse.class)
     @RequestMapping(method = RequestMethod.GET, produces = {"application/json;charset=utf-8"})
     BaseResponse<Page<CronjobExecutionResponse>> search(
             @RequestParam(defaultValue = "") String keyword,
@@ -55,12 +56,12 @@ public interface CronjobExecutionApi {
             @RequestParam(required = false) Boolean status,
             Pageable pageable);
 
-    @Operation(summary = "Update a cronjob execution mapping")
+    @ApiOperation(value = "Update a cronjob execution mapping", notes = "Replaces the cronjob and execution association.", response = CronjobExecutionResponse.class, tags = {"Cronjob Execution"})
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Updated successfully"),
-            @ApiResponse(responseCode = "400", description = "Invalid request"),
-            @ApiResponse(responseCode = "404", description = "Mapping not found"),
-            @ApiResponse(responseCode = "409", description = "Mapping already exists")
+            @ApiResponse(code = 200, message = "Updated successfully", response = CronjobExecutionResponse.class),
+            @ApiResponse(code = 400, message = "Invalid request", response = BaseResponse.class),
+            @ApiResponse(code = 404, message = "Mapping not found", response = BaseResponse.class),
+            @ApiResponse(code = 409, message = "Mapping already exists", response = BaseResponse.class)
     })
     @RequestMapping(
             value = "/{id}",
@@ -71,10 +72,10 @@ public interface CronjobExecutionApi {
             @PathVariable Long id,
             @Valid @RequestBody CronjobExecutionRequest request);
 
-    @Operation(summary = "Delete a cronjob execution mapping")
+    @ApiOperation(value = "Delete a cronjob execution mapping", notes = "Deletes the execution mapping identified by the supplied ID.", response = Void.class, tags = {"Cronjob Execution"})
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Deleted successfully"),
-            @ApiResponse(responseCode = "404", description = "Mapping not found")
+            @ApiResponse(code = 200, message = "Deleted successfully"),
+            @ApiResponse(code = 404, message = "Mapping not found", response = BaseResponse.class)
     })
     @RequestMapping(
             value = "/{id}",
@@ -82,11 +83,11 @@ public interface CronjobExecutionApi {
             produces = {"application/json;charset=utf-8"})
     BaseResponse<Void> delete(@PathVariable Long id);
 
-    @Operation(summary = "Change a cronjob execution status")
+    @ApiOperation(value = "Change a cronjob execution status", notes = "Enables or disables a cronjob execution mapping.", response = CronjobExecutionResponse.class, tags = {"Cronjob Execution"})
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Status updated successfully"),
-            @ApiResponse(responseCode = "400", description = "Invalid request"),
-            @ApiResponse(responseCode = "404", description = "Mapping not found")
+            @ApiResponse(code = 200, message = "Status updated successfully", response = CronjobExecutionResponse.class),
+            @ApiResponse(code = 400, message = "Invalid request", response = BaseResponse.class),
+            @ApiResponse(code = 404, message = "Mapping not found", response = BaseResponse.class)
     })
     @RequestMapping(
             value = "/{id}/status",
