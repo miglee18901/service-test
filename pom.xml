@@ -17,6 +17,7 @@
     <properties>
         <java.version>8</java.version>
         <jacoco.version>0.8.14</jacoco.version>
+        <springdoc.version>1.8.0</springdoc.version>
     </properties>
     <dependencies>
         <dependency>
@@ -50,6 +51,11 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-ui</artifactId>
+            <version>${springdoc.version}</version>
         </dependency>
     </dependencies>
     <build>

@@ -1,21 +1,22 @@
 package org.example.controller;
 
-import org.example.dto.*;
-import org.springframework.web.server.ResponseStatusException;
+import org.example.dto.BaseResponse;
+import org.example.dto.ChangeStatusRequest;
+import org.example.dto.CronjobExecutionRequest;
+import org.example.dto.CronjobExecutionResponse;
 import org.example.service.CronjobExecutionService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
-import javax.validation.Valid;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
 @RestController
-@RequestMapping("/api/cronjob-executions")
-public class CronjobExecutionController {
+public class CronjobExecutionController implements CronjobExecutionApi {
     private static final Set<String> ALLOWED_SORTS = new HashSet<>(Arrays.asList("id", "status", "cronjob.id", "executionInfo.id"));
     private final CronjobExecutionService service;
 
@@ -23,41 +24,41 @@ public class CronjobExecutionController {
         this.service = service;
     }
 
-    @PostMapping
-    public BaseResponse<CronjobExecutionResponse> create(@Valid @RequestBody CronjobExecutionRequest request) {
+    @Override
+    public BaseResponse<CronjobExecutionResponse> create(CronjobExecutionRequest request) {
         CronjobExecutionResponse response = service.create(request);
         return new BaseResponse<>(HttpStatus.OK.value(), "Created successfully", response);
     }
 
-    @GetMapping("/{id}")
-    public BaseResponse<CronjobExecutionResponse> findById(@PathVariable Long id) {
+    @Override
+    public BaseResponse<CronjobExecutionResponse> findById(Long id) {
         return new BaseResponse<>(HttpStatus.OK.value(), "Success", service.findById(id));
     }
 
-    @GetMapping
+    @Override
     public BaseResponse<Page<CronjobExecutionResponse>> search(
-            @RequestParam(defaultValue = "") String keyword,
-            @RequestParam(required = false) Long cronjobId,
-            @RequestParam(required = false) Long executionInfoId,
-            @RequestParam(required = false) Boolean status,
+            String keyword,
+            Long cronjobId,
+            Long executionInfoId,
+            Boolean status,
             Pageable pageable) {
         validatePageable(pageable);
         return new BaseResponse<>(HttpStatus.OK.value(), "Success", service.search(keyword, cronjobId, executionInfoId, status, pageable));
     }
 
-    @PutMapping("/{id}")
-    public BaseResponse<CronjobExecutionResponse> update(@PathVariable Long id, @Valid @RequestBody CronjobExecutionRequest request) {
+    @Override
+    public BaseResponse<CronjobExecutionResponse> update(Long id, CronjobExecutionRequest request) {
         return new BaseResponse<>(HttpStatus.OK.value(), "Updated successfully", service.update(id, request));
     }
 
-    @DeleteMapping("/{id}")
-    public BaseResponse<Void> delete(@PathVariable Long id) {
+    @Override
+    public BaseResponse<Void> delete(Long id) {
         service.delete(id);
         return new BaseResponse<>(HttpStatus.OK.value(), "Deleted successfully", null);
     }
 
-    @PatchMapping("/{id}/status")
-    public BaseResponse<CronjobExecutionResponse> changeStatus(@PathVariable Long id, @Valid @RequestBody ChangeStatusRequest request) {
+    @Override
+    public BaseResponse<CronjobExecutionResponse> changeStatus(Long id, ChangeStatusRequest request) {
         return new BaseResponse<>(HttpStatus.OK.value(), "Status updated successfully", service.changeStatus(id, request));
     }
 

@@ -41,7 +41,7 @@ class CronjobControllerTest {
                 .thenReturn(new CronjobResponse(
                         9L, "Daily", "0 */5 * * * *"));
 
-        mockMvc().perform(put("/api/cronjobs/{id}", 9L)
+        mockMvc().perform(put("/cronjobs/{id}", 9L)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -61,7 +61,7 @@ class CronjobControllerTest {
         when(executionService.changeAllStatuses(eq(7L), any()))
                 .thenReturn(Collections.emptyList());
 
-        mockMvc().perform(patch("/api/cronjobs/{cronjobId}/executions/status", 7L)
+        mockMvc().perform(patch("/cronjobs/{cronjobId}/executions/status", 7L)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk());
