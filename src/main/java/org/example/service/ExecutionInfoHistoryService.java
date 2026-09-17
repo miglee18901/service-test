@@ -1,6 +1,6 @@
 package org.example.service;
 
-import org.example.entity.ExecutionInfo;
+import org.example.model.ExecutionInfo;
 import org.springframework.stereotype.Service;
 
 import java.util.concurrent.atomic.AtomicLong;

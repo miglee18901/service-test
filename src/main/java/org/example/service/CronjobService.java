@@ -1,15 +1,15 @@
 package org.example.service;
 
-import org.example.dto.CronjobRequest;
-import org.example.dto.CronjobResponse;
-import org.example.entity.Cronjob;
+import org.example.dao.CronjobRequest;
+import org.example.dao.CronjobResponse;
+import org.example.model.Cronjob;
 import org.example.repository.CronjobExecutionRepository;
 import org.example.repository.CronjobRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
-import org.springframework.scheduling.support.CronExpression;
+import org.springframework.scheduling.support.CronSequenceGenerator;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
@@ -95,9 +95,7 @@ public class CronjobService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cron expression must contain exactly 6 fields: second minute hour day-of-month month day-of-week");
         }
 
-        try {
-            CronExpression.parse(normalizedCron);
-        } catch (IllegalArgumentException exception) {
+        if (!CronSequenceGenerator.isValidExpression(normalizedCron)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid cron expression");
         }
     }

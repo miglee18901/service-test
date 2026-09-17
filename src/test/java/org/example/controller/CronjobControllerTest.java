@@ -1,7 +1,7 @@
 package org.example.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.example.dto.*;
+import org.example.dao.*;
 import org.example.service.CronjobExecutionService;
 import org.example.service.CronjobService;
 import org.junit.jupiter.api.Test;

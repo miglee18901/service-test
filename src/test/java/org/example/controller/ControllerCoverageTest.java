@@ -1,7 +1,7 @@
 package org.example.controller;
 
-import org.example.dto.*;
-import org.example.entity.ExecutionInfo;
+import org.example.dao.*;
+import org.example.model.ExecutionInfo;
 import org.example.repository.ExecutionInfoRepository;
 import org.example.service.CronjobExecutionService;
 import org.example.service.CronjobService;
@@ -91,7 +91,7 @@ class ControllerCoverageTest {
         ExecutionStartService startService = mock(ExecutionStartService.class);
         ExecutionInfoController controller = new ExecutionInfoController(repository, startService);
         Page<ExecutionInfo> page = Page.empty();
-        BaseResponse<java.util.Map<String, String>> started = new BaseResponse<>(200, "ok", Collections.emptyMap());
+        BaseResponse started = new BaseResponse(200, "ok", Collections.emptyMap());
         when(repository.findAll(any(PageRequest.class))).thenReturn(page);
         when(startService.start(eq(1L), any(UserDetails.class))).thenReturn(started);
 

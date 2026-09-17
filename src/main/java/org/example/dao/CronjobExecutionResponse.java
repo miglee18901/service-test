@@ -1,8 +1,8 @@
-package org.example.dto;
+package org.example.dao;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import org.example.entity.CronjobExecution;
+import org.example.model.CronjobExecution;
 
 @Getter
 @AllArgsConstructor

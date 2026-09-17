@@ -1,9 +1,9 @@
 package org.example.service;
 
-import org.example.dto.BaseResponse;
-import org.example.dto.UserDetails;
-import org.example.entity.Cronjob;
-import org.example.entity.CronjobExecution;
+import org.example.dao.BaseResponse;
+import org.example.dao.UserDetails;
+import org.example.model.Cronjob;
+import org.example.model.CronjobExecution;
 import org.example.repository.CronjobExecutionRepository;
 import org.example.repository.CronjobRepository;
 import org.slf4j.Logger;
@@ -11,7 +11,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.scheduling.support.CronExpression;
+import org.springframework.scheduling.support.CronSequenceGenerator;
 import org.springframework.scheduling.support.CronTrigger;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.stereotype.Service;
@@ -72,7 +72,9 @@ public class DynamicCronjobSchedulerService {
     }
 
     public synchronized void schedule(Cronjob cronjob) {
-        CronExpression.parse(cronjob.getCronValue());
+        if (!CronSequenceGenerator.isValidExpression(cronjob.getCronValue())) {
+            throw new IllegalArgumentException("Invalid cron expression: " + cronjob.getCronValue());
+        }
         cancel(cronjob.getId());
         ScheduledFuture<?> future = scheduler.schedule(() -> executeCronjob(cronjob.getId()), new CronTrigger(cronjob.getCronValue()));
         if (future == null) {
@@ -99,7 +101,7 @@ public class DynamicCronjobSchedulerService {
         UserDetails systemUserDetails = new UserDetails("cronjob:" + cronjobId);
         for (CronjobExecution mapping : mappings) {
             try {
-                BaseResponse<?> response = executionStartService.start(mapping.getExecutionInfo().getId(), systemUserDetails);
+                BaseResponse response = executionStartService.start(mapping.getExecutionInfo().getId(), systemUserDetails);
                 log.info("Cronjob id={} started execution id={}, result={}", cronjobId, mapping.getExecutionInfo().getId(), response.getMessage());
             } catch (RuntimeException exception) {
                 log.error("Cronjob id={} failed to start execution id={}", cronjobId, mapping.getExecutionInfo().getId(), exception);

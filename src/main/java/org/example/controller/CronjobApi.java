@@ -4,13 +4,11 @@ import io.swagger.annotations.ApiOperation;
 
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
-import io.swagger.v3.oas.annotations.tags.Tag;
-import org.example.dto.BaseResponse;
-import org.example.dto.BatchChangeStatusRequest;
-import org.example.dto.CronjobExecutionResponse;
-import org.example.dto.CronjobRequest;
-import org.example.dto.CronjobResponse;
-import org.springframework.data.domain.Page;
+import org.example.dao.BaseResponse;
+import org.example.dao.BatchChangeStatusRequest;
+import org.example.dao.CronjobExecutionResponse;
+import org.example.dao.CronjobRequest;
+import org.example.dao.CronjobResponse;
 import org.springframework.data.domain.Pageable;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -19,9 +17,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import javax.validation.Valid;
-import java.util.List;
 
-@Tag(name = "Cronjob", description = "Cronjob management API")
 @RequestMapping(value = "/cronjobs", produces = {"application/json;charset=utf-8"})
 public interface CronjobApi {
     @ApiOperation(value = "Create a cronjob", notes = "Creates a cronjob with a valid six-field cron expression.", response = CronjobResponse.class, tags = {"Cronjob"})
@@ -34,7 +30,7 @@ public interface CronjobApi {
             method = RequestMethod.POST,
             produces = {"application/json;charset=utf-8"},
             consumes = {"application/json;charset=utf-8"})
-    BaseResponse<CronjobResponse> create(@Valid @RequestBody CronjobRequest request);
+    BaseResponse create(@Valid @RequestBody CronjobRequest request);
 
     @ApiOperation(value = "Get a cronjob by ID", notes = "Returns the cronjob identified by the supplied ID.", response = CronjobResponse.class, tags = {"Cronjob"})
     @ApiResponses({
@@ -45,14 +41,14 @@ public interface CronjobApi {
             value = "/{id}",
             method = RequestMethod.GET,
             produces = {"application/json;charset=utf-8"})
-    BaseResponse<CronjobResponse> findById(@PathVariable Long id);
+    BaseResponse findById(@PathVariable Long id);
 
     @ApiOperation(value = "Search cronjobs", notes = "Returns a pageable list of cronjobs filtered by keyword.", response = CronjobResponse.class, responseContainer = "List", tags = {"Cronjob"})
     @ApiResponse(code = 200, message = "Success", response = CronjobResponse.class)
     @RequestMapping(
             method = RequestMethod.GET,
             produces = {"application/json;charset=utf-8"})
-    BaseResponse<Page<CronjobResponse>> search(
+    BaseResponse search(
             @RequestParam(defaultValue = "") String keyword,
             Pageable pageable);
 
@@ -68,7 +64,7 @@ public interface CronjobApi {
             method = RequestMethod.PUT,
             produces = {"application/json;charset=utf-8"},
             consumes = {"application/json;charset=utf-8"})
-    BaseResponse<CronjobResponse> update(
+    BaseResponse update(
             @PathVariable Long id,
             @Valid @RequestBody CronjobRequest request);
 
@@ -82,7 +78,7 @@ public interface CronjobApi {
             value = "/{id}",
             method = RequestMethod.DELETE,
             produces = {"application/json;charset=utf-8"})
-    BaseResponse<Void> delete(@PathVariable Long id);
+    BaseResponse delete(@PathVariable Long id);
 
     @ApiOperation(value = "Change statuses of cronjob executions", notes = "Updates statuses for multiple execution mappings belonging to a cronjob.", response = CronjobExecutionResponse.class, responseContainer = "List", tags = {"Cronjob"})
     @ApiResponses({
@@ -95,7 +91,7 @@ public interface CronjobApi {
             method = RequestMethod.PATCH,
             produces = {"application/json;charset=utf-8"},
             consumes = {"application/json;charset=utf-8"})
-    BaseResponse<List<CronjobExecutionResponse>> changeAllStatuses(
+    BaseResponse changeAllStatuses(
             @PathVariable Long cronjobId,
             @Valid @RequestBody BatchChangeStatusRequest request);
 }

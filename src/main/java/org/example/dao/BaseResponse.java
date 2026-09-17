@@ -1,12 +1,12 @@
-package org.example.dto;
+package org.example.dao;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 @Getter
 @AllArgsConstructor
-public class BaseResponse<T> {
-    private int status;
+public class BaseResponse {
+    private Integer status;
     private String message;
-    private T data;
+    private Object data;
 }

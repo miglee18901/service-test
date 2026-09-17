@@ -1,15 +1,13 @@
 package org.example.controller;
 
-import org.example.dto.BaseResponse;
-import org.example.dto.UserDetails;
-import org.example.entity.ExecutionInfo;
+import org.example.dao.BaseResponse;
+import org.example.dao.UserDetails;
+import org.example.model.ExecutionInfo;
 import org.example.repository.ExecutionInfoRepository;
 import org.example.service.ExecutionStartService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.util.Map;
 
 @RestController
 public class ExecutionInfoController implements ExecutionInfoApi {
@@ -27,7 +25,7 @@ public class ExecutionInfoController implements ExecutionInfoApi {
     }
 
     @Override
-    public BaseResponse<Map<String, String>> start(Long id, String username) {
+    public BaseResponse start(Long id, String username) {
         return startService.start(id, new UserDetails(username));
     }
 }

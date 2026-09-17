@@ -1,9 +1,9 @@
 package org.example.service;
 
-import org.example.dto.*;
-import org.example.entity.Cronjob;
-import org.example.entity.CronjobExecution;
-import org.example.entity.ExecutionInfo;
+import org.example.dao.*;
+import org.example.model.Cronjob;
+import org.example.model.CronjobExecution;
+import org.example.model.ExecutionInfo;
 import org.springframework.web.server.ResponseStatusException;
 import org.example.repository.CronjobExecutionRepository;
 import org.example.repository.ExecutionInfoRepository;

@@ -1,10 +1,10 @@
 package org.example.service;
 
-import org.example.dto.BaseResponse;
-import org.example.dto.UserDetails;
-import org.example.entity.Cronjob;
-import org.example.entity.CronjobExecution;
-import org.example.entity.ExecutionInfo;
+import org.example.dao.BaseResponse;
+import org.example.dao.UserDetails;
+import org.example.model.Cronjob;
+import org.example.model.CronjobExecution;
+import org.example.model.ExecutionInfo;
 import org.example.repository.CronjobExecutionRepository;
 import org.example.repository.CronjobRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -110,7 +110,7 @@ class DynamicCronjobSchedulerServiceTest {
                 .thenReturn(Collections.singletonList(mapping));
         when(executionStartService.start(
                 eq(20L), any(UserDetails.class)))
-                .thenReturn(new BaseResponse<>(HttpStatus.OK.value(), "Success", null));
+                .thenReturn(new BaseResponse(HttpStatus.OK.value(), "Success", null));
 
         service.schedule(cronjob);
         runnableCaptor.getValue().run();

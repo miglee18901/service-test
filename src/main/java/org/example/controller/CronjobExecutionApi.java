@@ -4,12 +4,10 @@ import io.swagger.annotations.ApiOperation;
 
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
-import io.swagger.v3.oas.annotations.tags.Tag;
-import org.example.dto.BaseResponse;
-import org.example.dto.ChangeStatusRequest;
-import org.example.dto.CronjobExecutionRequest;
-import org.example.dto.CronjobExecutionResponse;
-import org.springframework.data.domain.Page;
+import org.example.dao.BaseResponse;
+import org.example.dao.ChangeStatusRequest;
+import org.example.dao.CronjobExecutionRequest;
+import org.example.dao.CronjobExecutionResponse;
 import org.springframework.data.domain.Pageable;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -19,7 +17,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import javax.validation.Valid;
 
-@Tag(name = "Cronjob Execution", description = "Cronjob execution mapping API")
 @RequestMapping(value = "/cronjob-executions", produces = {"application/json;charset=utf-8"})
 public interface CronjobExecutionApi {
     @ApiOperation(value = "Create a cronjob execution mapping", notes = "Associates an execution with a cronjob.", response = CronjobExecutionResponse.class, tags = {"Cronjob Execution"})
@@ -33,7 +30,7 @@ public interface CronjobExecutionApi {
             method = RequestMethod.POST,
             produces = {"application/json;charset=utf-8"},
             consumes = {"application/json;charset=utf-8"})
-    BaseResponse<CronjobExecutionResponse> create(@Valid @RequestBody CronjobExecutionRequest request);
+    BaseResponse create(@Valid @RequestBody CronjobExecutionRequest request);
 
     @ApiOperation(value = "Get a cronjob execution mapping by ID", notes = "Returns the execution mapping identified by the supplied ID.", response = CronjobExecutionResponse.class, tags = {"Cronjob Execution"})
     @ApiResponses({
@@ -44,12 +41,12 @@ public interface CronjobExecutionApi {
             value = "/{id}",
             method = RequestMethod.GET,
             produces = {"application/json;charset=utf-8"})
-    BaseResponse<CronjobExecutionResponse> findById(@PathVariable Long id);
+    BaseResponse findById(@PathVariable Long id);
 
     @ApiOperation(value = "Search cronjob execution mappings", notes = "Returns pageable execution mappings filtered by the supplied criteria.", response = CronjobExecutionResponse.class, responseContainer = "List", tags = {"Cronjob Execution"})
     @ApiResponse(code = 200, message = "Success", response = CronjobExecutionResponse.class)
     @RequestMapping(method = RequestMethod.GET, produces = {"application/json;charset=utf-8"})
-    BaseResponse<Page<CronjobExecutionResponse>> search(
+    BaseResponse search(
             @RequestParam(defaultValue = "") String keyword,
             @RequestParam(required = false) Long cronjobId,
             @RequestParam(required = false) Long executionInfoId,
@@ -68,7 +65,7 @@ public interface CronjobExecutionApi {
             method = RequestMethod.PUT,
             produces = {"application/json;charset=utf-8"},
             consumes = {"application/json;charset=utf-8"})
-    BaseResponse<CronjobExecutionResponse> update(
+    BaseResponse update(
             @PathVariable Long id,
             @Valid @RequestBody CronjobExecutionRequest request);
 
@@ -81,7 +78,7 @@ public interface CronjobExecutionApi {
             value = "/{id}",
             method = RequestMethod.DELETE,
             produces = {"application/json;charset=utf-8"})
-    BaseResponse<Void> delete(@PathVariable Long id);
+    BaseResponse delete(@PathVariable Long id);
 
     @ApiOperation(value = "Change a cronjob execution status", notes = "Enables or disables a cronjob execution mapping.", response = CronjobExecutionResponse.class, tags = {"Cronjob Execution"})
     @ApiResponses({
@@ -94,7 +91,7 @@ public interface CronjobExecutionApi {
             method = RequestMethod.PATCH,
             produces = {"application/json;charset=utf-8"},
             consumes = {"application/json;charset=utf-8"})
-    BaseResponse<CronjobExecutionResponse> changeStatus(
+    BaseResponse changeStatus(
             @PathVariable Long id,
             @Valid @RequestBody ChangeStatusRequest request);
 }

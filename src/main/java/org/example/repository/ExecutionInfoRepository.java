@@ -1,6 +1,6 @@
 package org.example.repository;
 
-import org.example.entity.ExecutionInfo;
+import org.example.model.ExecutionInfo;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface ExecutionInfoRepository extends JpaRepository<ExecutionInfo, Long> {

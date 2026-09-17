@@ -1,6 +1,6 @@
 package org.example.task;
 
-import org.example.entity.ExecutionInfo;
+import org.example.model.ExecutionInfo;
 import org.example.repository.ExecutionInfoRepository;
 import org.junit.jupiter.api.Test;
 

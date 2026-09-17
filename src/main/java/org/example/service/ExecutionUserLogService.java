@@ -1,6 +1,6 @@
 package org.example.service;
 
-import org.example.entity.ExecutionInfo;
+import org.example.model.ExecutionInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;

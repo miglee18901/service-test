@@ -1,11 +1,10 @@
 package org.example.controller;
 
-import org.example.dto.BaseResponse;
-import org.example.dto.ChangeStatusRequest;
-import org.example.dto.CronjobExecutionRequest;
-import org.example.dto.CronjobExecutionResponse;
+import org.example.dao.BaseResponse;
+import org.example.dao.ChangeStatusRequest;
+import org.example.dao.CronjobExecutionRequest;
+import org.example.dao.CronjobExecutionResponse;
 import org.example.service.CronjobExecutionService;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.RestController;
@@ -25,41 +24,41 @@ public class CronjobExecutionController implements CronjobExecutionApi {
     }
 
     @Override
-    public BaseResponse<CronjobExecutionResponse> create(CronjobExecutionRequest request) {
+    public BaseResponse create(CronjobExecutionRequest request) {
         CronjobExecutionResponse response = service.create(request);
-        return new BaseResponse<>(HttpStatus.OK.value(), "Created successfully", response);
+        return new BaseResponse(HttpStatus.OK.value(), "Created successfully", response);
     }
 
     @Override
-    public BaseResponse<CronjobExecutionResponse> findById(Long id) {
-        return new BaseResponse<>(HttpStatus.OK.value(), "Success", service.findById(id));
+    public BaseResponse findById(Long id) {
+        return new BaseResponse(HttpStatus.OK.value(), "Success", service.findById(id));
     }
 
     @Override
-    public BaseResponse<Page<CronjobExecutionResponse>> search(
+    public BaseResponse search(
             String keyword,
             Long cronjobId,
             Long executionInfoId,
             Boolean status,
             Pageable pageable) {
         validatePageable(pageable);
-        return new BaseResponse<>(HttpStatus.OK.value(), "Success", service.search(keyword, cronjobId, executionInfoId, status, pageable));
+        return new BaseResponse(HttpStatus.OK.value(), "Success", service.search(keyword, cronjobId, executionInfoId, status, pageable));
     }
 
     @Override
-    public BaseResponse<CronjobExecutionResponse> update(Long id, CronjobExecutionRequest request) {
-        return new BaseResponse<>(HttpStatus.OK.value(), "Updated successfully", service.update(id, request));
+    public BaseResponse update(Long id, CronjobExecutionRequest request) {
+        return new BaseResponse(HttpStatus.OK.value(), "Updated successfully", service.update(id, request));
     }
 
     @Override
-    public BaseResponse<Void> delete(Long id) {
+    public BaseResponse delete(Long id) {
         service.delete(id);
-        return new BaseResponse<>(HttpStatus.OK.value(), "Deleted successfully", null);
+        return new BaseResponse(HttpStatus.OK.value(), "Deleted successfully", null);
     }
 
     @Override
-    public BaseResponse<CronjobExecutionResponse> changeStatus(Long id, ChangeStatusRequest request) {
-        return new BaseResponse<>(HttpStatus.OK.value(), "Status updated successfully", service.changeStatus(id, request));
+    public BaseResponse changeStatus(Long id, ChangeStatusRequest request) {
+        return new BaseResponse(HttpStatus.OK.value(), "Status updated successfully", service.changeStatus(id, request));
     }
 
     private void validatePageable(Pageable pageable) {

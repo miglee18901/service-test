@@ -4,9 +4,9 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.example.client.MockExecutionApiClient;
-import org.example.dto.BaseResponse;
-import org.example.dto.UserDetails;
-import org.example.entity.ExecutionInfo;
+import org.example.dao.BaseResponse;
+import org.example.dao.UserDetails;
+import org.example.model.ExecutionInfo;
 import org.example.repository.ExecutionInfoRepository;
 import org.example.task.ExecutionUploadTask;
 import org.springframework.core.task.TaskExecutor;
@@ -48,16 +48,16 @@ public class ExecutionStartService {
     }
 
     @Transactional
-    public BaseResponse<Map<String, String>> start(Long executionInfoId, UserDetails userDetails) {
+    public BaseResponse start(Long executionInfoId, UserDetails userDetails) {
         ExecutionInfo findExecution = executionInfoRepository.findOne(executionInfoId);
         if (findExecution == null) {
-            return new BaseResponse<>(HttpStatus.CONFLICT.value(), "Execution Info not exists", null);
+            return new BaseResponse(HttpStatus.CONFLICT.value(), "Execution Info not exists", null);
         }
         if (findExecution.getExecutionElements() == null || findExecution.getExecutionElements().isEmpty()) {
-            return new BaseResponse<>(HttpStatus.CONFLICT.value(), "You must add at least 1 execution element", null);
+            return new BaseResponse(HttpStatus.CONFLICT.value(), "You must add at least 1 execution element", null);
         }
         if (Integer.valueOf(1).equals(findExecution.getState())) {
-            return new BaseResponse<>(HttpStatus.CONFLICT.value(), "You can't start this execution", null);
+            return new BaseResponse(HttpStatus.CONFLICT.value(), "You can't start this execution", null);
         }
 
         Long executionInfoHistoryId = executionInfoHistoryService.checkOldExecutionHistory(findExecution);
@@ -78,7 +78,7 @@ public class ExecutionStartService {
             if (responseId != null && Long.parseLong(responseId.toString()) > 0) {
                 ExecutionInfo executionInfo = executionInfoRepository.findOne(Long.parseLong(responseId.toString()));
                 if (executionInfo == null) {
-                    return new BaseResponse<>(HttpStatus.CONFLICT.value(), "Start fail !", null);
+                    return new BaseResponse(HttpStatus.CONFLICT.value(), "Start fail !", null);
                 }
 
                 executionInfo.setStartExecutionTime(new Date());
@@ -90,11 +90,11 @@ public class ExecutionStartService {
                 Map<String, String> mapResult = new LinkedHashMap<>();
                 mapResult.put("executionInfoHistoryId", String.valueOf(executionInfoHistoryId));
                 mapResult.put("maxExecutionHistory", String.valueOf(executionInfoHistoryService.getMaxExecutionHistory()));
-                return new BaseResponse<>(HttpStatus.OK.value(), "Start successfully !", mapResult);
+                return new BaseResponse(HttpStatus.OK.value(), "Start successfully !", mapResult);
             } else {
-                return new BaseResponse<>(HttpStatus.CONFLICT.value(), "Start fail !", null);
+                return new BaseResponse(HttpStatus.CONFLICT.value(), "Start fail !", null);
             }
         }
-        return new BaseResponse<>(HttpStatus.OK.value(), "Call API error, please try again!", null);
+        return new BaseResponse(HttpStatus.OK.value(), "Call API error, please try again!", null);
     }
 }
