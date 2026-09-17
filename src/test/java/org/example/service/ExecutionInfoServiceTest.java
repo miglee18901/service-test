@@ -9,10 +9,9 @@ import org.example.model.ExecutionInfo;
 import org.example.repository.ExecutionInfoRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.MockitoAnnotations;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -24,19 +23,19 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
-@ExtendWith(MockitoExtension.class)
-class ExecutionStartServiceTest {
+class ExecutionInfoServiceTest {
     @Mock private ExecutionInfoRepository repository;
     @Mock private ExecutionInfoHistoryService historyService;
     @Mock private ExecutionUserLogService userLogService;
     @Mock private MockExecutionApiClient apiClient;
     @Mock private TaskExecutor taskExecutor;
 
-    private ExecutionStartService service;
+    private ExecutionInfoService service;
 
     @BeforeEach
     void setUp() {
-        service = new ExecutionStartService(repository, historyService, userLogService,
+        MockitoAnnotations.initMocks(this);
+        service = new ExecutionInfoService(repository, historyService, userLogService,
                 apiClient, new ObjectMapper(), taskExecutor);
     }
 

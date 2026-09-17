@@ -9,10 +9,9 @@ import org.example.repository.CronjobExecutionRepository;
 import org.example.repository.CronjobRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.MockitoAnnotations;
 import org.springframework.http.HttpStatus;
 import org.springframework.scheduling.Trigger;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
@@ -25,14 +24,13 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
-@ExtendWith(MockitoExtension.class)
 class DynamicCronjobSchedulerServiceTest {
     @Mock
     private CronjobRepository cronjobRepository;
     @Mock
     private CronjobExecutionRepository mappingRepository;
     @Mock
-    private ExecutionStartService executionStartService;
+    private ExecutionInfoService executionInfoService;
     @Mock
     private ThreadPoolTaskScheduler taskScheduler;
     @Mock
@@ -42,10 +40,11 @@ class DynamicCronjobSchedulerServiceTest {
 
     @BeforeEach
     void setUp() {
+        MockitoAnnotations.openMocks(this);
         service = new DynamicCronjobSchedulerService(
                 cronjobRepository,
                 mappingRepository,
-                executionStartService,
+                executionInfoService,
                 taskScheduler);
     }
 
@@ -108,7 +107,7 @@ class DynamicCronjobSchedulerServiceTest {
                 .schedule(runnableCaptor.capture(), any(Trigger.class));
         when(mappingRepository.findByCronjobIdAndStatusTrue(1L))
                 .thenReturn(Collections.singletonList(mapping));
-        when(executionStartService.start(
+        when(executionInfoService.start(
                 eq(20L), any(UserDetails.class)))
                 .thenReturn(new BaseResponse(HttpStatus.OK.value(), "Success", null));
 
@@ -117,7 +116,7 @@ class DynamicCronjobSchedulerServiceTest {
 
         ArgumentCaptor<UserDetails> userCaptor =
                 ArgumentCaptor.forClass(UserDetails.class);
-        verify(executionStartService).start(eq(20L), userCaptor.capture());
+        verify(executionInfoService).start(eq(20L), userCaptor.capture());
         assertEquals("cronjob:1", userCaptor.getValue().getUsername());
     }
 

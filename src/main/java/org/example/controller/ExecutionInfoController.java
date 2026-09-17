@@ -4,7 +4,7 @@ import org.example.dao.BaseResponse;
 import org.example.dao.UserDetails;
 import org.example.model.ExecutionInfo;
 import org.example.repository.ExecutionInfoRepository;
-import org.example.service.ExecutionStartService;
+import org.example.service.ExecutionInfoService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.web.bind.annotation.RestController;
@@ -12,11 +12,11 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 public class ExecutionInfoController implements ExecutionInfoApi {
     private final ExecutionInfoRepository repository;
-    private final ExecutionStartService startService;
+    private final ExecutionInfoService executionInfoService;
 
-    public ExecutionInfoController(ExecutionInfoRepository repository, ExecutionStartService startService) {
+    public ExecutionInfoController(ExecutionInfoRepository repository, ExecutionInfoService executionInfoService) {
         this.repository = repository;
-        this.startService = startService;
+        this.executionInfoService = executionInfoService;
     }
 
     @Override
@@ -26,6 +26,6 @@ public class ExecutionInfoController implements ExecutionInfoApi {
 
     @Override
     public BaseResponse start(Long id, String username) {
-        return startService.start(id, new UserDetails(username));
+        return executionInfoService.start(id, new UserDetails(username));
     }
 }

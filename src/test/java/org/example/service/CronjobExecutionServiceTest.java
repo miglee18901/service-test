@@ -10,9 +10,8 @@ import org.example.repository.CronjobExecutionRepository;
 import org.example.repository.ExecutionInfoRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.MockitoAnnotations;
 import org.springframework.http.HttpStatus;
 
 import java.util.Arrays;
@@ -23,7 +22,6 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
-@ExtendWith(MockitoExtension.class)
 class CronjobExecutionServiceTest {
     @Mock
     private CronjobExecutionRepository repository;
@@ -38,6 +36,7 @@ class CronjobExecutionServiceTest {
 
     @BeforeEach
     void setUp() {
+        MockitoAnnotations.initMocks(this);
         service = new CronjobExecutionService(
                 repository,
                 cronjobService,

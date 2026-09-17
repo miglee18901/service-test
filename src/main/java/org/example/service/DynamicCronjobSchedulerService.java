@@ -28,7 +28,7 @@ public class DynamicCronjobSchedulerService {
             LoggerFactory.getLogger(DynamicCronjobSchedulerService.class);
     private final CronjobRepository cronjobRepository;
     private final CronjobExecutionRepository mappingRepository;
-    private final ExecutionStartService executionStartService;
+    private final ExecutionInfoService executionInfoService;
     private final ThreadPoolTaskScheduler scheduler;
     private final Map<Long, ScheduledFuture<?>> scheduledTasks =
             new ConcurrentHashMap<>();
@@ -36,11 +36,11 @@ public class DynamicCronjobSchedulerService {
     public DynamicCronjobSchedulerService(
             CronjobRepository cronjobRepository,
             CronjobExecutionRepository mappingRepository,
-            ExecutionStartService executionStartService,
+            ExecutionInfoService executionInfoService,
             @Qualifier("cronjobTaskScheduler") ThreadPoolTaskScheduler scheduler) {
         this.cronjobRepository = cronjobRepository;
         this.mappingRepository = mappingRepository;
-        this.executionStartService = executionStartService;
+        this.executionInfoService = executionInfoService;
         this.scheduler = scheduler;
     }
 
@@ -101,7 +101,7 @@ public class DynamicCronjobSchedulerService {
         UserDetails systemUserDetails = new UserDetails("cronjob:" + cronjobId);
         for (CronjobExecution mapping : mappings) {
             try {
-                BaseResponse response = executionStartService.start(mapping.getExecutionInfo().getId(), systemUserDetails);
+                BaseResponse response = executionInfoService.start(mapping.getExecutionInfo().getId(), systemUserDetails);
                 log.info("Cronjob id={} started execution id={}, result={}", cronjobId, mapping.getExecutionInfo().getId(), response.getMessage());
             } catch (RuntimeException exception) {
                 log.error("Cronjob id={} failed to start execution id={}", cronjobId, mapping.getExecutionInfo().getId(), exception);

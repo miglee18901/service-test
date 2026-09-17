@@ -8,9 +8,8 @@ import org.example.repository.CronjobExecutionRepository;
 import org.example.repository.CronjobRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.MockitoAnnotations;
 import org.springframework.http.HttpStatus;
 
 import java.util.Optional;
@@ -19,7 +18,6 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
-@ExtendWith(MockitoExtension.class)
 class CronjobServiceTest {
     @Mock
     private CronjobRepository repository;
@@ -32,6 +30,7 @@ class CronjobServiceTest {
 
     @BeforeEach
     void setUp() {
+        MockitoAnnotations.openMocks(this);
         service = new CronjobService(
                 repository, mappingRepository, schedulerService);
     }
@@ -84,6 +83,7 @@ class CronjobServiceTest {
                 () -> service.create(request("Daily test", "*/5 * * * *")));
 
         assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
+        assertNotNull(exception.getReason());
         assertTrue(exception.getReason().contains("exactly 6 fields"));
         verify(repository, never()).save(any());
     }
@@ -103,7 +103,7 @@ class CronjobServiceTest {
 
     @Test
     void updateShouldRescheduleWhenCronValueChanges() {
-        Cronjob existing = cronjob(1L, "Old", "0 */5 * * * *");
+        Cronjob existing = cronjob("Old");
         when(repository.findById(1L)).thenReturn(Optional.of(existing));
         when(repository.save(existing)).thenReturn(existing);
 
@@ -117,7 +117,7 @@ class CronjobServiceTest {
 
     @Test
     void updateShouldNotRescheduleWhenOnlyNameChanges() {
-        Cronjob existing = cronjob(1L, "Old", "0 */5 * * * *");
+        Cronjob existing = cronjob("Old");
         when(repository.findById(1L)).thenReturn(Optional.of(existing));
         when(repository.save(existing)).thenReturn(existing);
 
@@ -128,7 +128,7 @@ class CronjobServiceTest {
 
     @Test
     void deleteShouldRejectCronjobThatStillHasMappings() {
-        Cronjob existing = cronjob(1L, "Daily", "0 */5 * * * *");
+        Cronjob existing = cronjob("Daily");
         when(repository.findById(1L)).thenReturn(Optional.of(existing));
         when(mappingRepository.existsByCronjobId(1L)).thenReturn(true);
 
@@ -147,11 +147,11 @@ class CronjobServiceTest {
         return request;
     }
 
-    private Cronjob cronjob(Long id, String name, String cronValue) {
+    private Cronjob cronjob(String name) {
         Cronjob cronjob = new Cronjob();
-        cronjob.setId(id);
+        cronjob.setId(1L);
         cronjob.setName(name);
-        cronjob.setCronValue(cronValue);
+        cronjob.setCronValue("0 */5 * * * *");
         return cronjob;
     }
 }

@@ -5,7 +5,7 @@ import org.example.model.ExecutionInfo;
 import org.example.repository.ExecutionInfoRepository;
 import org.example.service.CronjobExecutionService;
 import org.example.service.CronjobService;
-import org.example.service.ExecutionStartService;
+import org.example.service.ExecutionInfoService;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -88,7 +88,7 @@ class ControllerCoverageTest {
     @Test
     void executionInfoControllerShouldDelegateRequests() {
         ExecutionInfoRepository repository = mock(ExecutionInfoRepository.class);
-        ExecutionStartService startService = mock(ExecutionStartService.class);
+        ExecutionInfoService startService = mock(ExecutionInfoService.class);
         ExecutionInfoController controller = new ExecutionInfoController(repository, startService);
         Page<ExecutionInfo> page = Page.empty();
         BaseResponse started = new BaseResponse(200, "ok", Collections.emptyMap());

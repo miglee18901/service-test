@@ -21,7 +21,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 @Service
-public class ExecutionStartService {
+public class ExecutionInfoService {
     private final ExecutionInfoRepository executionInfoRepository;
     private final ExecutionInfoHistoryService executionInfoHistoryService;
     private final ExecutionUserLogService executionUserLogService;
@@ -32,7 +32,7 @@ public class ExecutionStartService {
     private final long timeout = 300000L;
     private final long timeSleep = 1000L;
 
-    public ExecutionStartService(
+    public ExecutionInfoService(
             ExecutionInfoRepository executionInfoRepository,
             ExecutionInfoHistoryService executionInfoHistoryService,
             ExecutionUserLogService executionUserLogService,
