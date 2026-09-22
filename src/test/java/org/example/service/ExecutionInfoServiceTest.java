@@ -40,7 +40,7 @@ class ExecutionInfoServiceTest {
     }
 
     @Test
-    void shouldRejectMissingExecution() {
+    void start_missingExecution_returnsError() {
         BaseResponse response = service.start(1L, new UserDetails("user"));
         assertEquals(HttpStatus.CONFLICT.value(), response.getStatus());
         assertEquals("Execution Info not exists", response.getMessage());
@@ -48,7 +48,7 @@ class ExecutionInfoServiceTest {
     }
 
     @Test
-    void shouldRejectExecutionWithoutElements() {
+    void start_executionWithoutElements_returnsError() {
         ExecutionInfo info = new ExecutionInfo();
         info.setExecutionElements(Collections.emptyList());
         when(repository.findOne(1L)).thenReturn(info);
@@ -57,7 +57,7 @@ class ExecutionInfoServiceTest {
     }
 
     @Test
-    void shouldRejectRunningExecution() {
+    void start_runningExecution_returnsError() {
         ExecutionInfo info = validExecution(1L);
         info.setState(1);
         when(repository.findOne(1L)).thenReturn(info);
@@ -66,7 +66,7 @@ class ExecutionInfoServiceTest {
     }
 
     @Test
-    void shouldFailWhenApiResponseIsInvalidJson() {
+    void start_invalidApiJson_returnsError() {
         when(repository.findOne(1L)).thenReturn(validExecution(1L));
         when(historyService.checkOldExecutionHistory(any())).thenReturn(10L);
         when(apiClient.start(1L)).thenReturn(ResponseEntity.ok("invalid-json"));
@@ -76,7 +76,7 @@ class ExecutionInfoServiceTest {
     }
 
     @Test
-    void shouldReturnCallApiErrorWhenStatusIsNotOk() {
+    void start_nonOkApiStatus_returnsCallApiError() {
         when(repository.findOne(1L)).thenReturn(validExecution(1L));
         when(historyService.checkOldExecutionHistory(any())).thenReturn(10L);
         when(apiClient.start(1L)).thenReturn(new ResponseEntity<>("{}", HttpStatus.BAD_REQUEST));
@@ -85,7 +85,7 @@ class ExecutionInfoServiceTest {
     }
 
     @Test
-    void shouldFailWhenApiDoesNotReturnPositiveId() {
+    void start_nonPositiveApiId_returnsError() {
         when(repository.findOne(1L)).thenReturn(validExecution(1L));
         when(historyService.checkOldExecutionHistory(any())).thenReturn(10L);
         when(apiClient.start(1L)).thenReturn(ResponseEntity.ok("{\"id\":0}"));
@@ -95,7 +95,7 @@ class ExecutionInfoServiceTest {
     }
 
     @Test
-    void shouldFailWhenReturnedExecutionDoesNotExist() {
+    void start_missingReturnedExecution_returnsError() {
         when(repository.findOne(1L)).thenReturn(validExecution(1L));
         when(repository.findOne(2L)).thenReturn(null);
         when(historyService.checkOldExecutionHistory(any())).thenReturn(10L);
@@ -105,7 +105,7 @@ class ExecutionInfoServiceTest {
     }
 
     @Test
-    void shouldSaveLogAndSubmitUploadTaskOnSuccess() {
+    void start_validExecution_savesLogAndSubmitsUpload() {
         ExecutionInfo initial = validExecution(1L);
         ExecutionInfo returned = validExecution(2L);
         when(repository.findOne(1L)).thenReturn(initial);

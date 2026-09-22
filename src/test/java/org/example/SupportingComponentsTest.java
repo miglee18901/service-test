@@ -27,13 +27,13 @@ import static org.mockito.Mockito.*;
 
 class SupportingComponentsTest {
     @Test
-    void mockApiClientShouldReturnRequestedId() {
+    void start_validId_returnsRequestedId() {
         assertEquals("{\"id\":7,\"status\":\"ACCEPTED\"}", new MockExecutionApiClient().start(7L).getBody());
         assertEquals(HttpStatus.OK, new MockExecutionApiClient().start(7L).getStatusCode());
     }
 
     @Test
-    void historyAndLoggingServicesShouldWork() {
+    void historyAndLogging_validExecution_processesSuccessfully() {
         ExecutionInfo info = new ExecutionInfo();
         info.setId(1L);
         ExecutionInfoHistoryService history = new ExecutionInfoHistoryService();
@@ -45,7 +45,7 @@ class SupportingComponentsTest {
     }
 
     @Test
-    void configurationShouldCreateDedicatedExecutors() {
+    void configuration_defaultSettings_createsDedicatedExecutors() {
         TaskExecutionProperties properties = new TaskExecutionProperties();
         ThreadPoolTaskExecutor executor = (ThreadPoolTaskExecutor) new AsyncConfiguration(properties).getAsyncExecutor();
         assertEquals(properties.getPool().getCoreSize(), executor.getCorePoolSize());
@@ -61,7 +61,7 @@ class SupportingComponentsTest {
     }
 
     @Test
-    void executionModelsShouldExposeAssignedValues() {
+    void executionModels_assignedValues_exposesValues() {
         Date now = new Date();
         ExecutionInfo info = new ExecutionInfo();
         info.setId(1L);
@@ -124,7 +124,7 @@ class SupportingComponentsTest {
     }
 
     @Test
-    void repositoryDefaultFindOneShouldUnwrapOptional() {
+    void findOne_existingExecution_unwrapsOptional() {
         ExecutionInfoRepository repository = mock(ExecutionInfoRepository.class, CALLS_REAL_METHODS);
         ExecutionInfo info = new ExecutionInfo();
         when(repository.findById(1L)).thenReturn(Optional.of(info));

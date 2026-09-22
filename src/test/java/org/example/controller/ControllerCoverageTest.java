@@ -22,7 +22,7 @@ import static org.mockito.Mockito.*;
 
 class ControllerCoverageTest {
     @Test
-    void cronjobControllerShouldDelegateAllOperations() {
+    void cronjobController_validRequests_delegatesOperations() {
         CronjobService cronjobs = mock(CronjobService.class);
         CronjobExecutionService executions = mock(CronjobExecutionService.class);
         CronjobController controller = new CronjobController(cronjobs, executions);
@@ -45,7 +45,7 @@ class ControllerCoverageTest {
     }
 
     @Test
-    void cronjobControllerShouldRejectInvalidPagingAndSort() {
+    void cronjobController_invalidPagingOrSort_rejectsRequest() {
         CronjobController controller = new CronjobController(mock(CronjobService.class), mock(CronjobExecutionService.class));
         assertThrows(ResponseStatusException.class,
                 () -> controller.search("", PageRequest.of(0, 101)));
@@ -54,7 +54,7 @@ class ControllerCoverageTest {
     }
 
     @Test
-    void executionControllerShouldDelegateAllOperations() {
+    void executionController_validRequests_delegatesOperations() {
         CronjobExecutionService service = mock(CronjobExecutionService.class);
         CronjobExecutionController controller = new CronjobExecutionController(service);
         CronjobExecutionRequest request = new CronjobExecutionRequest();
@@ -77,7 +77,7 @@ class ControllerCoverageTest {
     }
 
     @Test
-    void executionControllerShouldRejectInvalidPagingAndSort() {
+    void executionController_invalidPagingOrSort_rejectsRequest() {
         CronjobExecutionController controller = new CronjobExecutionController(mock(CronjobExecutionService.class));
         assertThrows(ResponseStatusException.class,
                 () -> controller.search("", null, null, null, PageRequest.of(0, 101)));
@@ -86,7 +86,7 @@ class ControllerCoverageTest {
     }
 
     @Test
-    void executionInfoControllerShouldDelegateRequests() {
+    void executionInfoController_validRequests_delegatesRequests() {
         ExecutionInfoRepository repository = mock(ExecutionInfoRepository.class);
         ExecutionInfoService startService = mock(ExecutionInfoService.class);
         ExecutionInfoController controller = new ExecutionInfoController(repository, startService);

@@ -36,7 +36,7 @@ class CronjobServiceTest {
     }
 
     @Test
-    void createShouldTrimAndSaveValidCronjob() {
+    void create_validCronjob_trimsAndSaves() {
         CronjobRequest request = request("  Daily test  ", "0 */5 * * * *");
         when(repository.existsByNameIgnoreCase("Daily test")).thenReturn(false);
         when(repository.save(any(Cronjob.class))).thenAnswer(invocation -> {
@@ -55,7 +55,7 @@ class CronjobServiceTest {
     }
 
     @Test
-    void createShouldRejectInvalidCronExpression() {
+    void create_invalidCronExpression_rejectsRequest() {
         ResponseStatusException exception = assertThrows(
                 ResponseStatusException.class,
                 () -> service.create(request("Daily test", "0 99 * * * *")));
@@ -66,7 +66,7 @@ class CronjobServiceTest {
     }
 
     @Test
-    void createShouldRejectBlankCronExpression() {
+    void create_blankCronExpression_rejectsRequest() {
         ResponseStatusException exception = assertThrows(
                 ResponseStatusException.class,
                 () -> service.create(request("Daily test", "   ")));
@@ -77,7 +77,7 @@ class CronjobServiceTest {
     }
 
     @Test
-    void createShouldRejectCronExpressionWithoutSixFields() {
+    void create_cronExpressionWithoutSixFields_rejectsRequest() {
         ResponseStatusException exception = assertThrows(
                 ResponseStatusException.class,
                 () -> service.create(request("Daily test", "*/5 * * * *")));
@@ -89,7 +89,7 @@ class CronjobServiceTest {
     }
 
     @Test
-    void createShouldRejectDuplicateName() {
+    void create_duplicateName_rejectsRequest() {
         when(repository.existsByNameIgnoreCase("Daily test")).thenReturn(true);
 
         ResponseStatusException exception = assertThrows(
@@ -102,7 +102,7 @@ class CronjobServiceTest {
     }
 
     @Test
-    void updateShouldRescheduleWhenCronValueChanges() {
+    void update_changedCronValue_reschedulesCronjob() {
         Cronjob existing = cronjob("Old");
         when(repository.findById(1L)).thenReturn(Optional.of(existing));
         when(repository.save(existing)).thenReturn(existing);
@@ -116,7 +116,7 @@ class CronjobServiceTest {
     }
 
     @Test
-    void updateShouldNotRescheduleWhenOnlyNameChanges() {
+    void update_onlyNameChanges_doesNotReschedule() {
         Cronjob existing = cronjob("Old");
         when(repository.findById(1L)).thenReturn(Optional.of(existing));
         when(repository.save(existing)).thenReturn(existing);
@@ -127,7 +127,7 @@ class CronjobServiceTest {
     }
 
     @Test
-    void deleteShouldRejectCronjobThatStillHasMappings() {
+    void delete_cronjobWithMappings_rejectsRequest() {
         Cronjob existing = cronjob("Daily");
         when(repository.findById(1L)).thenReturn(Optional.of(existing));
         when(mappingRepository.existsByCronjobId(1L)).thenReturn(true);

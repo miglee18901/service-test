@@ -11,7 +11,7 @@ import static org.mockito.Mockito.*;
 
 class ExecutionUploadTaskTest {
     @Test
-    void shouldCompleteExistingExecution() {
+    void run_existingExecution_completesExecution() {
         ExecutionInfo info = execution(1L);
         ExecutionInfoRepository repository = mock(ExecutionInfoRepository.class);
         when(repository.findById(1L)).thenReturn(Optional.of(info));
@@ -24,7 +24,7 @@ class ExecutionUploadTaskTest {
     }
 
     @Test
-    void shouldUseZeroStateWhenThresholdIsNotPositive() {
+    void run_nonPositiveThreshold_usesZeroState() {
         ExecutionInfo info = execution(1L);
         ExecutionInfoRepository repository = mock(ExecutionInfoRepository.class);
         when(repository.findById(1L)).thenReturn(Optional.of(info));
@@ -33,7 +33,7 @@ class ExecutionUploadTaskTest {
     }
 
     @Test
-    void shouldDoNothingWhenExecutionWasDeleted() {
+    void run_deletedExecution_doesNothing() {
         ExecutionInfo info = execution(1L);
         ExecutionInfoRepository repository = mock(ExecutionInfoRepository.class);
         when(repository.findById(1L)).thenReturn(Optional.empty());
@@ -42,7 +42,7 @@ class ExecutionUploadTaskTest {
     }
 
     @Test
-    void shouldRestoreInterruptFlagWhenSleepIsInterrupted() {
+    void run_interruptedSleep_restoresInterruptFlag() {
         ExecutionInfo info = execution(1L);
         ExecutionInfoRepository repository = mock(ExecutionInfoRepository.class);
         Thread.currentThread().interrupt();

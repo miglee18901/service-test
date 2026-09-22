@@ -32,7 +32,7 @@ class CronjobExecutionControllerTest {
     }
 
     @Test
-    void updateShouldReadMappingIdFromPath() throws Exception {
+    void update_mappingIdInPath_passesIdToService() throws Exception {
         CronjobExecutionRequest request = new CronjobExecutionRequest();
         request.setCronjobId(1L);
         request.setExecutionInfoId(10L);
@@ -49,7 +49,7 @@ class CronjobExecutionControllerTest {
     }
 
     @Test
-    void changeStatusShouldReadMappingIdFromPath() throws Exception {
+    void changeStatus_mappingIdInPath_passesIdToService() throws Exception {
         ChangeStatusRequest request = new ChangeStatusRequest();
         request.setExpectedStatus(true);
         request.setStatus(false);

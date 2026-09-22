@@ -37,7 +37,7 @@ class CronjobControllerTest {
     }
 
     @Test
-    void updateShouldReadCronjobIdFromPath() throws Exception {
+    void update_cronjobIdInPath_passesIdToService() throws Exception {
         CronjobRequest request = new CronjobRequest();
         request.setName("Daily");
         request.setCronValue("0 */5 * * * *");
@@ -55,7 +55,7 @@ class CronjobControllerTest {
     }
 
     @Test
-    void batchStatusShouldReadCronjobIdFromPath() throws Exception {
+    void batchStatus_cronjobIdInPath_passesIdToService() throws Exception {
         BatchStatusItem item = new BatchStatusItem();
         item.setId(11L);
         item.setExpectedStatus(true);

@@ -45,7 +45,7 @@ class CronjobExecutionServiceTest {
     }
 
     @Test
-    void createShouldSaveMappingAndScheduleCronjob() {
+    void create_validMapping_savesAndSchedulesCronjob() {
         Cronjob cronjob = cronjob(1L);
         ExecutionInfo execution = execution(10L, true);
         CronjobExecutionRequest request = request(1L, 10L, true);
@@ -68,7 +68,7 @@ class CronjobExecutionServiceTest {
     }
 
     @Test
-    void createShouldRejectExecutionWithoutElements() {
+    void create_executionWithoutElements_rejectsRequest() {
         Cronjob cronjob = cronjob(1L);
         ExecutionInfo execution = execution(10L, false);
         when(cronjobService.getEntity(1L)).thenReturn(cronjob);
@@ -83,7 +83,7 @@ class CronjobExecutionServiceTest {
     }
 
     @Test
-    void createShouldRejectExecutionAlreadyAssignedToCronjob() {
+    void create_executionAlreadyAssigned_rejectsRequest() {
         Cronjob cronjob = cronjob(1L);
         ExecutionInfo execution = execution(10L, true);
         when(cronjobService.getEntity(1L)).thenReturn(cronjob);
@@ -101,7 +101,7 @@ class CronjobExecutionServiceTest {
     }
 
     @Test
-    void changeStatusShouldUpdateConditionallyAndSyncScheduler() {
+    void changeStatus_matchingExpectedStatus_updatesAndSyncsScheduler() {
         CronjobExecution before = mapping(100L, 1L, 10L, true);
         CronjobExecution after = mapping(100L, 1L, 10L, false);
         when(repository.findById(100L))
@@ -117,7 +117,7 @@ class CronjobExecutionServiceTest {
     }
 
     @Test
-    void changeStatusShouldReturnConflictForStaleSession() {
+    void changeStatus_staleSession_returnsConflict() {
         CronjobExecution mapping = mapping(100L, 1L, 10L, false);
         when(repository.findById(100L)).thenReturn(Optional.of(mapping));
         when(repository.updateStatusIfMatches(100L, true, false))
@@ -134,7 +134,7 @@ class CronjobExecutionServiceTest {
     }
 
     @Test
-    void batchStatusShouldRejectIncompleteClientSnapshot() {
+    void batchStatus_incompleteSnapshot_rejectsRequest() {
         when(cronjobService.getEntity(1L)).thenReturn(cronjob(1L));
         when(repository.findByCronjobId(1L)).thenReturn(Arrays.asList(
                 mapping(100L, 1L, 10L, true),
@@ -152,7 +152,7 @@ class CronjobExecutionServiceTest {
     }
 
     @Test
-    void batchStatusShouldUpdateEveryMappingAndSyncSchedulerOnce() {
+    void batchStatus_completeSnapshot_updatesAllAndSyncsOnce() {
         CronjobExecution first = mapping(100L, 1L, 10L, true);
         CronjobExecution second = mapping(101L, 1L, 11L, false);
         CronjobExecution firstAfter = mapping(100L, 1L, 10L, false);

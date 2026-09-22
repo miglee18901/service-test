@@ -49,7 +49,7 @@ class DynamicCronjobSchedulerServiceTest {
     }
 
     @Test
-    void scheduleIfNecessaryShouldScheduleWhenEnabledMappingExists() {
+    void scheduleIfNecessary_enabledMapping_schedulesCronjob() {
         Cronjob cronjob = cronjob(1L, "*/5 * * * * *");
         when(mappingRepository.existsByCronjobIdAndStatusTrue(1L))
                 .thenReturn(true);
@@ -64,7 +64,7 @@ class DynamicCronjobSchedulerServiceTest {
     }
 
     @Test
-    void scheduleIfNecessaryShouldCancelWhenNoEnabledMappingRemains() {
+    void scheduleIfNecessary_noEnabledMapping_cancelsCronjob() {
         Cronjob cronjob = cronjob(1L, "*/5 * * * * *");
         doReturn(scheduledFuture).when(taskScheduler)
                 .schedule(any(Runnable.class), any(Trigger.class));
@@ -79,7 +79,7 @@ class DynamicCronjobSchedulerServiceTest {
     }
 
     @Test
-    void reloadAllShouldRestoreOnlyCronjobsReturnedByRepository() {
+    void reloadAll_repositoryCronjobs_restoresOnlyReturnedCronjobs() {
         Cronjob cronjob = cronjob(3L, "0 */10 * * * *");
         when(cronjobRepository.findAllHavingEnabledExecutions())
                 .thenReturn(Collections.singletonList(cronjob));
@@ -92,7 +92,7 @@ class DynamicCronjobSchedulerServiceTest {
     }
 
     @Test
-    void scheduledRunnableShouldCallStartForEveryEnabledExecution() {
+    void scheduledRunnable_enabledExecutions_startsEachExecution() {
         Cronjob cronjob = cronjob(1L, "*/5 * * * * *");
         ExecutionInfo execution = new ExecutionInfo();
         execution.setId(20L);
