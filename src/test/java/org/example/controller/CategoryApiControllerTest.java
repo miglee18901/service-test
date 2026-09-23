@@ -1,6 +1,5 @@
 package org.example.controller;
 
-import org.example.dao.BaseResponse;
 import org.example.model.Category;
 import org.example.service.CategoryService;
 import org.junit.jupiter.api.BeforeEach;

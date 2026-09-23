@@ -1,0 +1,44 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /api
+
+app:
+  datasource:
+    driver-class: com.mysql.cj.jdbc.Driver
+    jdbc-url: "${DB_URL:jdbc:mysql://localhost:3306/service-test?useSSL=false&useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Barnaul}"
+    user: "${DB_USERNAME:root}"
+    password: "${DB_PASSWORD:123456a@}"
+    min-pool-size: 3
+    max-pool-size: 10
+    checkout-timeout: 50000
+    max-statements: 150
+    idle-connection-test-period: 30
+    max-idle-time: 1800
+    test-connection-on-checkout: true
+  scheduler:
+    pool-size: 5
+
+spring:
+  config:
+    import: "optional:file:.env[.properties]"
+  jpa:
+    hibernate:
+      ddl-auto: update
+    database-platform: org.hibernate.dialect.MySQL8Dialect
+    open-in-view: false
+    properties:
+      hibernate:
+        jdbc:
+          fetch_size: 200
+
+execute-vim:
+  options:
+    - vim-a
+    - vim-b
+
+test-case:
+  validation:
+    blocked-value-characteristics:
+      "600100Msisdn": [ "3000", "3001" ]
+      "600000BalType": [ "3000", "3001" ]

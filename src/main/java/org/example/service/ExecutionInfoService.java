@@ -4,7 +4,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.example.client.MockExecutionApiClient;
-import org.example.dao.BaseResponse;
+import org.example.controller.BaseResponse;
+import org.example.dao.ExecuteVimProperties;
 import org.example.dao.UserDetails;
 import org.example.model.ExecutionInfo;
 import org.example.repository.ExecutionInfoRepository;
@@ -28,6 +29,7 @@ public class ExecutionInfoService {
     private final MockExecutionApiClient restTemplate;
     private final ObjectMapper objectMapper;
     private final TaskExecutor taskExecutor;
+    private final ExecuteVimProperties executeVimProperties;
     private final int handleTestCaseMin10 = 10;
     private final long timeout = 300000L;
     private final long timeSleep = 1000L;
@@ -38,13 +40,19 @@ public class ExecutionInfoService {
             ExecutionUserLogService executionUserLogService,
             MockExecutionApiClient restTemplate,
             ObjectMapper objectMapper,
-            @Qualifier("taskExecutor") TaskExecutor taskExecutor) {
+            @Qualifier("taskExecutor") TaskExecutor taskExecutor,
+            ExecuteVimProperties executeVimProperties) {
         this.executionInfoRepository = executionInfoRepository;
         this.executionInfoHistoryService = executionInfoHistoryService;
         this.executionUserLogService = executionUserLogService;
         this.restTemplate = restTemplate;
         this.objectMapper = objectMapper;
         this.taskExecutor = taskExecutor;
+        this.executeVimProperties = executeVimProperties;
+    }
+
+    public BaseResponse listExecutionVim() {
+        return new BaseResponse(200, "Get list execute vim success", executeVimProperties.getOptions());
     }
 
     @Transactional

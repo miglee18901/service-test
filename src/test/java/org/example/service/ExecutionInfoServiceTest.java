@@ -2,8 +2,9 @@ package org.example.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.example.client.MockExecutionApiClient;
-import org.example.dao.BaseResponse;
+import org.example.controller.BaseResponse;
 import org.example.dao.UserDetails;
+import org.example.dao.ExecuteVimProperties;
 import org.example.model.ExecutionElement;
 import org.example.model.ExecutionInfo;
 import org.example.repository.ExecutionInfoRepository;
@@ -31,12 +32,23 @@ class ExecutionInfoServiceTest {
     @Mock private TaskExecutor taskExecutor;
 
     private ExecutionInfoService service;
+    private ExecuteVimProperties executeVimProperties;
 
     @BeforeEach
     void setUp() {
         MockitoAnnotations.initMocks(this);
+        executeVimProperties = mock(ExecuteVimProperties.class);
         service = new ExecutionInfoService(repository, historyService, userLogService,
-                apiClient, new ObjectMapper(), taskExecutor);
+                apiClient, new ObjectMapper(), taskExecutor, executeVimProperties);
+    }
+
+    @Test
+    void listExecutionVim_configuredOptions_returnsOptions() {
+        when(executeVimProperties.getOptions()).thenReturn(java.util.Arrays.asList("vim-a", "vim-b"));
+        BaseResponse response = service.listExecutionVim();
+        assertEquals(200, response.getStatus());
+        assertEquals("Get list execute vim success", response.getMessage());
+        assertEquals(java.util.Arrays.asList("vim-a", "vim-b"), response.getData());
     }
 
     @Test

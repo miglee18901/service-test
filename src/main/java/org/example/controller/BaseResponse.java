@@ -1,4 +1,4 @@
-package org.example.dao;
+package org.example.controller;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

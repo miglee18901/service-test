@@ -1,6 +1,6 @@
 package org.example.service;
 
-import org.example.dao.BaseResponse;
+import org.example.controller.BaseResponse;
 import org.example.model.Category;
 import org.example.model.TestCase;
 import org.example.repository.CategoryRepository;

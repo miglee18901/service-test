@@ -209,11 +209,14 @@ Content-Type: application/json
 
 ```http
 GET /api/execution-info?page=0&size=20
+GET /api/executionInfo/execute-vim
 POST /api/execution-info/100/start
 X-User: operator
 ```
 
 The start endpoint invokes the same service method used by scheduled executions.
+
+The execute-vim endpoint returns `execute-vim.options` from application configuration. For example: `execute-vim.options=vim-a,vim-b`. If unset, it returns an empty list.
 
 ## Scheduler behavior
 

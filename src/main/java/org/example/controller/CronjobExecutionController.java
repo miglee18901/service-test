@@ -1,6 +1,5 @@
 package org.example.controller;
 
-import org.example.dao.BaseResponse;
 import org.example.dao.ChangeStatusRequest;
 import org.example.dao.CronjobExecutionRequest;
 import org.example.dao.CronjobExecutionResponse;
@@ -15,7 +14,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 @RestController
-public class CronjobExecutionController implements CronjobExecutionApi {
+public class CronjobExecutionController extends BaseResponseApi implements CronjobExecutionApi {
     private static final Set<String> ALLOWED_SORTS = new HashSet<>(Arrays.asList("id", "status", "cronjob.id", "executionInfo.id"));
     private final CronjobExecutionService service;
 

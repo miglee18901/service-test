@@ -4,7 +4,6 @@ import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
-import org.example.dao.BaseResponse;
 import org.example.model.Category;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -32,7 +31,7 @@ public interface CategoryApi {
             produces = {"application/json;charset=utf-8"},
             consumes = {"application/json;charset=utf-8"},
             method = RequestMethod.POST)
-    ResponseEntity<BaseResponse> clone(
+    ResponseEntity<?> clone(
             @ApiParam(value = "Identifier of the Category", required = true)
             @PathVariable("id") long id,
             @ApiParam(value = "Category Type", required = true)

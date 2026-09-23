@@ -94,9 +94,11 @@ class ControllerCoverageTest {
         BaseResponse started = new BaseResponse(200, "ok", Collections.emptyMap());
         when(repository.findAll(any(PageRequest.class))).thenReturn(page);
         when(startService.start(eq(1L), any(UserDetails.class))).thenReturn(started);
+        when(startService.listExecutionVim()).thenReturn(new BaseResponse(200, "Get list execute vim success", Collections.singletonList("vim-a")));
 
         assertEquals(page, controller.findAll(PageRequest.of(0, 10)));
         assertEquals(started, controller.start(1L, "tester"));
+        assertEquals(Collections.singletonList("vim-a"), ((BaseResponse) controller.listExecuteVim().getBody()).getData());
         verify(startService).start(eq(1L), argThat(user -> "tester".equals(user.getUsername())));
     }
 }

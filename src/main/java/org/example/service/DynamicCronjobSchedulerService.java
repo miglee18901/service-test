@@ -1,6 +1,6 @@
 package org.example.service;
 
-import org.example.dao.BaseResponse;
+import org.example.controller.BaseResponse;
 import org.example.dao.UserDetails;
 import org.example.model.Cronjob;
 import org.example.model.CronjobExecution;

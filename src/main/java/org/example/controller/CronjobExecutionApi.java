@@ -4,7 +4,6 @@ import io.swagger.annotations.ApiOperation;
 
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
-import org.example.dao.BaseResponse;
 import org.example.dao.ChangeStatusRequest;
 import org.example.dao.CronjobExecutionRequest;
 import org.example.dao.CronjobExecutionResponse;

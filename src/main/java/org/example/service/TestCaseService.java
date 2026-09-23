@@ -1,6 +1,8 @@
 package org.example.service;
 
 import org.example.model.TestCase;
+import org.example.controller.BaseResponse;
+import org.example.dao.TestCaseValidationProperties;
 import org.example.repository.TestCaseRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -12,9 +14,16 @@ import java.util.regex.Pattern;
 @Service
 public class TestCaseService {
     private final TestCaseRepository testCaseRepository;
+    private final TestCaseValidationProperties testCaseValidationProperties;
 
-    public TestCaseService(TestCaseRepository testCaseRepository) {
+    public TestCaseService(TestCaseRepository testCaseRepository,
+                           TestCaseValidationProperties testCaseValidationProperties) {
         this.testCaseRepository = testCaseRepository;
+        this.testCaseValidationProperties = testCaseValidationProperties;
+    }
+
+    public BaseResponse getBlockedValueCharacteristics() {
+        return new BaseResponse(200, "Successfully", testCaseValidationProperties.getBlockedValueCharacteristics());
     }
 
     public String generateTestCaseName(String name) {
