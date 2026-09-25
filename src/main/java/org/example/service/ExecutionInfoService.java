@@ -3,7 +3,6 @@ package org.example.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.example.client.MockExecutionApiClient;
 import org.example.controller.BaseResponse;
 import org.example.dao.ExecuteVimProperties;
 import org.example.dao.UserDetails;
@@ -12,10 +11,15 @@ import org.example.repository.ExecutionInfoRepository;
 import org.example.task.ExecutionUploadTask;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestTemplate;
 
 import java.util.Date;
 import java.util.LinkedHashMap;
@@ -26,7 +30,8 @@ public class ExecutionInfoService {
     private final ExecutionInfoRepository executionInfoRepository;
     private final ExecutionInfoHistoryService executionInfoHistoryService;
     private final ExecutionUserLogService executionUserLogService;
-    private final MockExecutionApiClient restTemplate;
+    private final RestTemplate restTemplate;
+    private final String urlApiExecution;
     private final ObjectMapper objectMapper;
     private final TaskExecutor taskExecutor;
     private final ExecuteVimProperties executeVimProperties;
@@ -38,7 +43,8 @@ public class ExecutionInfoService {
             ExecutionInfoRepository executionInfoRepository,
             ExecutionInfoHistoryService executionInfoHistoryService,
             ExecutionUserLogService executionUserLogService,
-            MockExecutionApiClient restTemplate,
+            RestTemplate restTemplate,
+            @Value("${app.execution-api.url}") String urlApiExecution,
             ObjectMapper objectMapper,
             @Qualifier("taskExecutor") TaskExecutor taskExecutor,
             ExecuteVimProperties executeVimProperties) {
@@ -46,6 +52,7 @@ public class ExecutionInfoService {
         this.executionInfoHistoryService = executionInfoHistoryService;
         this.executionUserLogService = executionUserLogService;
         this.restTemplate = restTemplate;
+        this.urlApiExecution = urlApiExecution;
         this.objectMapper = objectMapper;
         this.taskExecutor = taskExecutor;
         this.executeVimProperties = executeVimProperties;
@@ -72,9 +79,12 @@ public class ExecutionInfoService {
         Map<String, Object> responseAPI;
         ResponseEntity<String> response;
         try {
-            // Mocked equivalent of restTemplate.exchange(urlApiExecution + "/" +
-            // executionInfoId, HttpMethod.POST, entity, String.class).
-            response = restTemplate.start(executionInfoId);
+            HttpHeaders httpHeaders = new HttpHeaders();
+            httpHeaders.set("Content-Type", "application/json");
+
+            HttpEntity<String> entity = new HttpEntity<>(null, httpHeaders);
+            response = restTemplate.exchange(urlApiExecution + "/" + executionInfoId, HttpMethod.POST, entity, String.class);
+
             responseAPI = objectMapper.readValue(response.getBody(), new TypeReference<Map<String, Object>>() {
             });
         } catch (JsonProcessingException exception) {

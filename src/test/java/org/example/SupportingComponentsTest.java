@@ -13,7 +13,10 @@ import org.example.service.ExecutionInfoAction;
 import org.example.service.ExecutionInfoHistoryService;
 import org.example.service.ExecutionUserLogService;
 import org.junit.jupiter.api.Test;
+import org.aopalliance.intercept.MethodInterceptor;
+import org.springframework.aop.framework.ProxyFactory;
 import org.springframework.boot.autoconfigure.task.TaskExecutionProperties;
+import org.springframework.data.projection.DefaultMethodInvokingMethodInterceptor;
 import org.springframework.http.HttpStatus;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
@@ -125,10 +128,19 @@ class SupportingComponentsTest {
 
     @Test
     void findOne_existingExecution_unwrapsOptional() {
-        ExecutionInfoRepository repository = mock(ExecutionInfoRepository.class, CALLS_REAL_METHODS);
         ExecutionInfo info = new ExecutionInfo();
-        when(repository.findById(1L)).thenReturn(Optional.of(info));
-        when(repository.findById(2L)).thenReturn(Optional.empty());
+        ProxyFactory factory = new ProxyFactory();
+        factory.setInterfaces(ExecutionInfoRepository.class);
+        factory.addAdvice((MethodInterceptor) invocation -> {
+            if ("findById".equals(invocation.getMethod().getName())) {
+                return Long.valueOf(1L).equals(invocation.getArguments()[0])
+                        ? Optional.of(info) : Optional.empty();
+            }
+            return invocation.proceed();
+        });
+        factory.addAdvice(new DefaultMethodInvokingMethodInterceptor());
+        ExecutionInfoRepository repository = (ExecutionInfoRepository) factory.getProxy();
+
         assertEquals(info, repository.findOne(1L));
         assertNull(repository.findOne(2L));
     }

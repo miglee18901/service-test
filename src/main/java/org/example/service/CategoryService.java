@@ -5,6 +5,7 @@ import org.example.model.Category;
 import org.example.model.TestCase;
 import org.example.repository.CategoryRepository;
 import org.example.repository.TestCaseRepository;
+import org.example.utils.CharacteristicUtil;
 import org.example.utils.SecurityUtil;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -108,11 +109,13 @@ public class CategoryService {
         if (category.getCategoryName().trim().equals(name.trim())) {
             nameClone = generateCategoryName(name.trim());
         } else {
-            String nameTemp = name.trim();
-            if (categoryRepository.existsByCategoryNameAndDomainId(nameTemp, domainId)) {
+            String nameTemp = CharacteristicUtil.escapeLike(name).trim();
+            Category existingCategory = categoryRepository.findName(nameTemp);
+            if (existingCategory == null) {
+                nameClone = name.trim();
+            } else {
                 throw new RuntimeException("Category name clone = " + nameTemp + " already exist");
             }
-            nameClone = nameTemp;
         }
         if (nameClone.length() > 255) {
             throw new RuntimeException("Category name clone = " + nameClone + " length must be between 0 and 255");
@@ -145,12 +148,14 @@ public class CategoryService {
         if (testCase.getName().trim().equals(name.trim())) {
             nameClone = testCaseService.generateTestCaseName(name.trim());
         } else {
-            String nameTemp = name.trim();
-            if (testCaseRepository.existsByNameAndDomainId(nameTemp, domainId)) {
+            String nameTemp = CharacteristicUtil.escapeLike(name).trim();
+            TestCase existingTestCase = testCaseRepository.findName(nameTemp);
+            if (existingTestCase == null) {
+                nameClone = name.trim();
+            } else {
                 throw new RuntimeException("Test case name clone = " + nameTemp
                         + " already exist, please try again");
             }
-            nameClone = nameTemp;
         }
         if (nameClone.length() > 255) {
             throw new RuntimeException("Test case name clone = " + nameClone

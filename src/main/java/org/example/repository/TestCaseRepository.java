@@ -16,6 +16,9 @@ public interface TestCaseRepository extends JpaRepository<TestCase, Long> {
 
     boolean existsByNameAndDomainId(String name, Integer domainId);
 
+    @Query("select t from TestCase t where t.name like :name escape '\\\\'")
+    TestCase findName(@Param("name") String name);
+
     TestCase findTopByNameStartingWithOrderByIdDesc(String prefix);
 
     default TestCase findContainNameTestCase(String prefix) {

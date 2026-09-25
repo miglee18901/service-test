@@ -12,6 +12,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 
 import java.util.Arrays;
@@ -83,6 +85,31 @@ class CronjobExecutionServiceTest {
     }
 
     @Test
+    void create_executionWithNullElements_rejectsRequest() {
+        ExecutionInfo execution = execution(10L, true);
+        execution.setExecutionElements(null);
+        when(cronjobService.getEntity(1L)).thenReturn(cronjob(1L));
+        when(executionInfoRepository.findOne(10L)).thenReturn(execution);
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> service.create(request(1L, 10L, true)));
+
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
+    }
+
+    @Test
+    void create_missingExecution_returnsNotFound() {
+        when(cronjobService.getEntity(1L)).thenReturn(cronjob(1L));
+        when(executionInfoRepository.findOne(10L)).thenReturn(null);
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> service.create(request(1L, 10L, true)));
+
+        assertEquals(HttpStatus.NOT_FOUND, exception.getStatus());
+        assertEquals("Execution info not found", exception.getReason());
+    }
+
+    @Test
     void create_executionAlreadyAssigned_rejectsRequest() {
         Cronjob cronjob = cronjob(1L);
         ExecutionInfo execution = execution(10L, true);
@@ -98,6 +125,108 @@ class CronjobExecutionServiceTest {
         assertEquals(
                 "Execution already belongs to another cronjob",
                 exception.getReason());
+    }
+
+    @Test
+    void findById_existingMapping_returnsResponse() {
+        when(repository.findById(100L)).thenReturn(Optional.of(mapping(100L, 1L, 10L, true)));
+
+        CronjobExecutionResponse response = service.findById(100L);
+
+        assertEquals(100L, response.getId());
+        assertEquals(1L, response.getCronjobId());
+        assertEquals(10L, response.getExecutionInfoId());
+    }
+
+    @Test
+    void findById_missingMapping_returnsNotFound() {
+        when(repository.findById(100L)).thenReturn(Optional.empty());
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> service.findById(100L));
+
+        assertEquals(HttpStatus.NOT_FOUND, exception.getStatus());
+        assertEquals("Cronjob execution not found", exception.getReason());
+    }
+
+    @Test
+    void search_nullKeyword_mapsResponsePage() {
+        PageRequest pageable = PageRequest.of(0, 10);
+        when(repository.search("", 1L, 10L, true, pageable)).thenReturn(
+                new PageImpl<>(Collections.singletonList(mapping(100L, 1L, 10L, true)), pageable, 1));
+
+        org.springframework.data.domain.Page<CronjobExecutionResponse> result =
+                service.search(null, 1L, 10L, true, pageable);
+
+        assertEquals(1, result.getTotalElements());
+        assertEquals(100L, result.getContent().get(0).getId());
+    }
+
+    @Test
+    void search_keyword_trimsKeyword() {
+        PageRequest pageable = PageRequest.of(0, 10);
+        when(repository.search("job", null, null, null, pageable)).thenReturn(
+                new PageImpl<>(Collections.emptyList(), pageable, 0));
+
+        service.search("  job  ", null, null, null, pageable);
+
+        verify(repository).search("job", null, null, null, pageable);
+    }
+
+    @Test
+    void update_validMapping_savesAndSchedulesOldAndNewCronjobs() {
+        CronjobExecution existing = mapping(100L, 1L, 10L, true);
+        Cronjob newCronjob = cronjob(2L);
+        ExecutionInfo newExecution = execution(20L, true);
+        when(repository.findById(100L)).thenReturn(Optional.of(existing));
+        when(cronjobService.getEntity(2L)).thenReturn(newCronjob);
+        when(executionInfoRepository.findOne(20L)).thenReturn(newExecution);
+        when(repository.saveAndFlush(existing)).thenReturn(existing);
+
+        CronjobExecutionResponse response = service.update(100L, request(2L, 20L, false));
+
+        assertEquals(2L, response.getCronjobId());
+        assertEquals(20L, response.getExecutionInfoId());
+        assertFalse(response.getStatus());
+        verify(schedulerService).scheduleIfNecessary(1L);
+        verify(schedulerService).scheduleIfNecessary(2L);
+    }
+
+    @Test
+    void update_executionAssignedToAnotherMapping_returnsConflict() {
+        when(repository.findById(100L)).thenReturn(Optional.of(mapping(100L, 1L, 10L, true)));
+        when(cronjobService.getEntity(2L)).thenReturn(cronjob(2L));
+        when(executionInfoRepository.findOne(20L)).thenReturn(execution(20L, true));
+        when(repository.existsByExecutionInfoIdAndIdNot(20L, 100L)).thenReturn(true);
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> service.update(100L, request(2L, 20L, false)));
+
+        assertEquals(HttpStatus.CONFLICT, exception.getStatus());
+        verify(repository, never()).saveAndFlush(any());
+    }
+
+    @Test
+    void delete_existingMapping_deletesFlushesAndSchedulesCronjob() {
+        CronjobExecution existing = mapping(100L, 1L, 10L, true);
+        when(repository.findById(100L)).thenReturn(Optional.of(existing));
+
+        service.delete(100L);
+
+        verify(repository).delete(existing);
+        verify(repository).flush();
+        verify(schedulerService).scheduleIfNecessary(1L);
+    }
+
+    @Test
+    void delete_missingMapping_returnsNotFound() {
+        when(repository.findById(100L)).thenReturn(Optional.empty());
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> service.delete(100L));
+
+        assertEquals(HttpStatus.NOT_FOUND, exception.getStatus());
+        verify(repository, never()).delete(any());
     }
 
     @Test
@@ -149,6 +278,50 @@ class CronjobExecutionServiceTest {
         assertEquals(HttpStatus.CONFLICT, exception.getStatus());
         verify(repository, never()).updateStatusIfMatches(
                 anyLong(), anyBoolean(), anyBoolean());
+    }
+
+    @Test
+    void batchStatus_duplicateIds_returnsBadRequest() {
+        when(cronjobService.getEntity(1L)).thenReturn(cronjob(1L));
+        when(repository.findByCronjobId(1L)).thenReturn(
+                Collections.singletonList(mapping(100L, 1L, 10L, true)));
+        BatchChangeStatusRequest request = batchRequest(false,
+                item(100L, true), item(100L, true));
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> service.changeAllStatuses(1L, request));
+
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
+        assertEquals("Duplicate mapping id", exception.getReason());
+    }
+
+    @Test
+    void batchStatus_staleExpectedStatus_returnsConflict() {
+        when(cronjobService.getEntity(1L)).thenReturn(cronjob(1L));
+        when(repository.findByCronjobId(1L)).thenReturn(
+                Collections.singletonList(mapping(100L, 1L, 10L, true)));
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> service.changeAllStatuses(1L,
+                        batchRequest(false, item(100L, false))));
+
+        assertEquals(HttpStatus.CONFLICT, exception.getStatus());
+        verify(repository, never()).updateStatusIfMatches(anyLong(), anyBoolean(), anyBoolean());
+    }
+
+    @Test
+    void batchStatus_concurrentUpdateReturnsZero_returnsConflict() {
+        when(cronjobService.getEntity(1L)).thenReturn(cronjob(1L));
+        when(repository.findByCronjobId(1L)).thenReturn(
+                Collections.singletonList(mapping(100L, 1L, 10L, true)));
+        when(repository.updateStatusIfMatches(100L, true, false)).thenReturn(0);
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> service.changeAllStatuses(1L,
+                        batchRequest(false, item(100L, true))));
+
+        assertEquals(HttpStatus.CONFLICT, exception.getStatus());
+        verify(repository, never()).flush();
     }
 
     @Test

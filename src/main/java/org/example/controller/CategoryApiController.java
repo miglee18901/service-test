@@ -14,10 +14,10 @@ public class CategoryApiController extends BaseResponseApi implements CategoryAp
 
     @Override
     public ResponseEntity<?> clone(long id,
-                                               Integer categoryType,
-                                               String name,
-                                               String description,
-                                               String accept) {
+                                   Integer categoryType,
+                                   String name,
+                                   String description,
+                                   String accept) {
         try {
             BaseResponse result = categoryService.clone(id, categoryType, name, description);
             return statusResponse(result);

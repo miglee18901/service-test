@@ -16,6 +16,9 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
 
     boolean existsByCategoryNameAndDomainId(String name, Integer domainId);
 
+    @Query("select c from Category c where c.categoryName like :name escape '\\\\'")
+    Category findName(@Param("name") String name);
+
     Category findTopByCategoryNameStartingWithOrderByCategoryIdDesc(String prefix);
 
     default Category findOneContainCategoryByName(String prefix) {

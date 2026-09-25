@@ -4,6 +4,8 @@ server:
     context-path: /api
 
 app:
+  execution-api:
+    url: "${EXECUTION_API_URL:http://localhost:8081/api/executions}"
   datasource:
     driver-class: com.mysql.cj.jdbc.Driver
     jdbc-url: "${DB_URL:jdbc:mysql://localhost:3306/service-test?useSSL=false&useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Barnaul}"
