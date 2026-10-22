@@ -2,12 +2,16 @@ SERVICE-TEST API CONTRACT CHO FRONTEND
 ======================================
 
 Base URL: /api
+Profile dev mặc định: http://localhost:8080/api (có thể bị ghi đè bởi cấu hình triển khai).
 Content-Type: application/json
+Một số endpoint GET và clone cũng khai báo consumes application/json; gửi header
+Content-Type: application/json ngay cả khi không có body (xem từng endpoint).
 
 QUY ƯỚC RESPONSE
 ----------------
 
-Các API cronjob và cronjob-execution trả về:
+Các API cronjob, cronjob-execution, start execution, clone category,
+execute-vim và blocked-value characteristics trả về BaseResponse:
 
 {
   "status": 200,
@@ -15,7 +19,9 @@ Các API cronjob và cronjob-execution trả về:
   "data": ...
 }
 
-Response phân trang của Spring:
+GET /execution-info trả trực tiếp Page<ExecutionInfo>.
+Hai API tìm kiếm cronjob và cronjob-execution đặt Page trong field data.
+Các field chính của response phân trang của Spring (có thể có thêm metadata):
 
 {
   "content": [],
@@ -30,15 +36,24 @@ Response phân trang của Spring:
 
 Query phân trang dùng chung:
 - page: số trang, bắt đầu từ 0; mặc định 0
-- size: số bản ghi mỗi trang; hợp lệ từ 1 đến 100; mặc định 20
+- size: số bản ghi mỗi trang; mặc định 20
 - sort: property,direction; có thể truyền nhiều lần
 - Ví dụ: ?page=0&size=20&sort=name,asc
+- Hai API tìm kiếm cronjob và cronjob-execution kiểm tra size từ 1 đến 100,
+  và chỉ cho phép các sort property liệt kê trong từng mục.
+- GET /execution-info dùng Pageable của Spring; không có kiểm tra giới hạn 100
+  hoặc danh sách sort property riêng ở controller.
 
 Lưu ý lỗi:
 - 400: request/validation không hợp lệ
 - 404: không tìm thấy tài nguyên
 - 409: dữ liệu trùng hoặc trạng thái phía FE đã cũ
-- Backend dùng error response mặc định của Spring, không bọc lỗi trong BaseResponse.
+- Cronjob và cronjob-execution: lỗi validation/ResponseStatusException dùng
+  error response mặc định của Spring, không bọc lỗi trong BaseResponse.
+- Clone category và lỗi được controller blocked-value bắt: trả BaseResponse,
+  HTTP status tương ứng với field status (ví dụ 500).
+- Start execution: lỗi nghiệp vụ có thể trả HTTP 200 với status = 409 trong body.
+- Lỗi binding request do Spring xử lý vẫn có thể dùng error response mặc định.
 
 
 1. CRONJOB
@@ -56,9 +71,13 @@ Body:
 
 Validation:
 - name: bắt buộc, tối đa 255 ký tự
+- name được trim trước khi lưu; phải duy nhất không phân biệt hoa/thường,
+  trùng tên trả 409.
 - cronValue: bắt buộc, tối đa 100 ký tự
 - cronValue có đúng 6 trường:
   second minute hour day-of-month month day-of-week
+- cronValue được trim và phải hợp lệ theo CronSequenceGenerator của Spring;
+  đủ 6 trường nhưng sai cú pháp hoặc giá trị vẫn trả 400.
 
 Success: HTTP 200
 {
@@ -88,6 +107,8 @@ Query:
 - keyword: không bắt buộc, mặc định rỗng
 - page, size, sort
 
+keyword được trim; tìm chứa chuỗi, không phân biệt hoa/thường trên name và cronValue.
+
 Sort property được phép:
 - id
 - name
@@ -112,6 +133,8 @@ Body:
 }
 
 Success: HTTP 200, data là CronjobResponse sau cập nhật.
+Áp dụng cùng validation như tạo cronjob; kiểm tra trùng tên bỏ qua chính ID đang sửa.
+Thay đổi cronValue sẽ cập nhật lại lịch chạy sau khi giao dịch thành công.
 
 1.5. Xóa cronjob
 
@@ -127,7 +150,7 @@ Success:
   "data": null
 }
 
-Cronjob không thể xóa nếu vẫn còn cronjob-execution liên kết.
+Cronjob không thể xóa nếu vẫn còn cronjob-execution liên kết (409).
 
 1.6. Đổi trạng thái toàn bộ execution của một cronjob
 
@@ -152,6 +175,9 @@ Body:
 }
 
 Ý nghĩa:
+- items bắt buộc, không được rỗng; mỗi item phải có id và expectedStatus.
+- Không được lặp id trong items; vi phạm trả 400.
+- status bắt buộc, không được null.
 - items phải chứa đầy đủ tất cả mapping hiện tại của cronjob.
 - id là ID cronjob-execution.
 - expectedStatus là trạng thái FE đang hiển thị.
@@ -187,6 +213,12 @@ Body:
 }
 
 Tất cả field đều bắt buộc.
+Điều kiện nghiệp vụ cho cả tạo và cập nhật:
+- cronjobId và executionInfoId phải tồn tại; không tồn tại trả 404.
+- Execution phải có ít nhất một execution element; không có trả 400,
+  kể cả khi status = false.
+- Mỗi executionInfoId chỉ được có một mapping trên toàn hệ thống, kể cả mapping
+  đang tắt. Đã được gắn ở mapping khác trả 409, dù cùng hay khác cronjob.
 
 Success: HTTP 200, data là CronjobExecutionResponse.
 
@@ -209,6 +241,9 @@ Query:
 - executionInfoId: không bắt buộc
 - status: không bắt buộc, true hoặc false
 - page, size, sort
+
+keyword được trim; tìm chứa chuỗi, không phân biệt hoa/thường trên tên cronjob
+và tên execution info. Các bộ lọc cronjobId, executionInfoId, status kết hợp bằng AND.
 
 Sort property được phép:
 - id
@@ -236,6 +271,8 @@ Body:
 }
 
 Success: HTTP 200, data là CronjobExecutionResponse sau cập nhật.
+Tất cả field bắt buộc; áp dụng điều kiện nghiệp vụ tại mục 2.1.
+PUT thay thế cả cronjobId, executionInfoId và status; không có expectedStatus.
 
 2.5. Xóa cronjob-execution
 
@@ -265,6 +302,7 @@ Body:
 }
 
 Ý nghĩa:
+- expectedStatus và status đều bắt buộc, không được null.
 - expectedStatus là trạng thái FE đang hiển thị.
 - status là trạng thái mới.
 - Nếu DB không còn giống expectedStatus, API trả 409.
@@ -332,6 +370,110 @@ Success theo nghiệp vụ:
 
 Lưu ý: endpoint start hiện có một số lỗi nghiệp vụ trả HTTP 200 nhưng field
 status trong body là 409. FE cần kiểm tra cả field status trong response body.
+Các trường hợp này gồm: ID không tồn tại, không có execution element,
+state = 1, hoặc kết quả gọi API thực thi không cho phép hoàn tất start.
+Lỗi gọi API/đọc JSON không được xử lý thành BaseResponse có thể trả lỗi HTTP 500.
+Một nhánh gọi API thực thi còn có thể trả status = 200, data = null và message
+"Call API error, please try again!"; không nên chỉ dựa vào status để báo start thành công.
+
+3.3. Lấy danh sách execute-vim
+
+GET /api/executionInfo/execute-vim
+
+Chú ý: executionInfo viết camelCase, khác /execution-info.
+Header: Content-Type: application/json (mapping có khai báo consumes).
+Không có query parameter hoặc request body.
+
+Success: HTTP 200
+{
+  "status": 200,
+  "message": "Get list execute vim success",
+  "data": ["vim-a", "vim-b"]
+}
+
+data là danh sách chuỗi từ cấu hình execute-vim.options; giá trị ví dụ theo profile dev.
+
+
+4. CATEGORY
+===========
+
+4.1. Clone category
+
+POST /api/category/{id}/clone
+
+Path:
+- id: ID category nguồn
+
+Query (không gửi dưới dạng JSON body):
+- categoryType: Integer, bắt buộc; loại của category gốc được tạo mới
+- name: String, bắt buộc; tên category gốc được tạo mới
+- description: String, không bắt buộc, mặc định rỗng
+
+Header:
+- Content-Type: application/json (mapping có khai báo consumes)
+- Accept: không bắt buộc
+
+Ví dụ:
+POST /api/category/10/clone?categoryType=1&name=Regression%20copy&description=Copy
+
+Hành vi và validation:
+- Clone toàn bộ cây category cùng test case bên trong; lỗi sẽ rollback giao dịch.
+- Category nguồn phải tồn tại trong domain hiện tại và có categoryParentId;
+  category gốc không có parent không được clone.
+- name không được rỗng; name và description tối đa 255 ký tự.
+- Tên được trim; nếu trùng tên nguồn thì sinh hậu tố _Clone(n).
+- Tên khác tên nguồn nhưng đã tồn tại bị từ chối; tên sau sinh hậu tố cũng
+  phải không vượt quá 255 ký tự.
+- categoryType áp dụng cho category gốc mới; category con giữ loại của nguồn.
+
+Success: HTTP 200
+{
+  "status": 200,
+  "message": "Clone successfully",
+  "data": {
+    "categoryId": 20,
+    "categoryType": 1,
+    "categoryName": "Regression copy",
+    "treeType": null,
+    "posIndex": 1,
+    "remark": null,
+    "domainId": 1,
+    "categoryParentId": 5,
+    "description": "Copy"
+  }
+}
+
+data là category gốc mới, không chứa danh sách category con/test case.
+Các giá trị ID, domain và posIndex trong ví dụ chỉ mang tính minh họa.
+
+Lỗi nghiệp vụ trong service (kể cả không tìm thấy nguồn hoặc tên không hợp lệ):
+HTTP 500, BaseResponse có status = 500, message bắt đầu bằng "Clone fail! ", data = null.
+Thiếu query bắt buộc hoặc sai kiểu tham số: Spring xử lý lỗi request (thường HTTP 400).
+
+
+5. TEST CASE
+============
+
+5.1. Lấy blocked-value characteristics
+
+GET /api/test-case/characteristics/blocked-value
+
+Header: Content-Type: application/json (mapping có khai báo consumes).
+Không có query parameter hoặc request body.
+
+Success: HTTP 200
+{
+  "status": 200,
+  "message": "Successfully",
+  "data": {
+    "600100Msisdn": ["3000", "3001"],
+    "600000BalType": ["3000", "3001"]
+  }
+}
+
+data là map tên characteristic -> danh sách chuỗi giá trị, lấy từ cấu hình
+test-case.validation.blocked-value-characteristics. Ví dụ trên theo profile dev.
+Lỗi được controller bắt trả HTTP 500, BaseResponse có status = 500 và data = null.
 
 
 TÓM TẮT ENDPOINT
@@ -353,3 +495,8 @@ PATCH  /api/cronjob-executions/{id}/status
 
 GET    /api/execution-info
 POST   /api/execution-info/{id}/start
+GET    /api/executionInfo/execute-vim
+
+POST   /api/category/{id}/clone
+
+GET    /api/test-case/characteristics/blocked-value
