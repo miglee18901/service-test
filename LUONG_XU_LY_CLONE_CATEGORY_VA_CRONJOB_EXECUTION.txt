@@ -1,0 +1,501 @@
+TÀI LIỆU PHÂN TÍCH LUỒNG XỬ LÝ
+CLONE CATEGORY CỦA TEST CASE VÀ CRONJOB CỦA EXECUTION
+Ngày lập: 08/10/2026
+Góc nhìn: Business Analyst - mô tả hành vi hiện tại từ mã nguồn.
+
+1. PHẠM VI VÀ CÁCH ĐỌC
+======================================================================
+Tài liệu mô tả hai nhóm chức năng:
+  (1) Clone một category, toàn bộ category con và test case trong cây.
+  (2) Quản lý cronjob, gắn execution, bật/tắt và tự động start theo lịch.
+
+Các bước thao tác người dùng là cách diễn giải nghiệp vụ của API; chưa
+xác nhận bằng màn hình giao diện. Các mục “Điểm cần chốt” là đề xuất BA,
+không phải hành vi đã được triển khai. Tài liệu dựa trên mã nguồn local
+tại thời điểm lập, không phải kết quả kiểm thử trên môi trường vận hành.
+
+Thuật ngữ:
+- Category nguồn: category người dùng chọn để clone.
+- Category gốc hệ thống: category có categoryParentId = null.
+- Gốc cây clone: category được chọn; khác với gốc hệ thống.
+- Domain: phạm vi dữ liệu được dùng khi kiểm tra category/test case.
+- Execution: bản ghi ExecutionInfo, có danh sách ExecutionElement.
+- Mapping: bản ghi CronjobExecution liên kết cronjob với execution.
+- Mapping.status: true = cho phép chạy theo lịch; false = tắt theo lịch.
+- Execution.state: trạng thái execution, độc lập với Mapping.status.
+- Commit: xác nhận thay đổi dữ liệu; rollback: hủy toàn bộ thay đổi
+  trong giao dịch tương ứng.
+
+2. CLONE CATEGORY CỦA TEST CASE
+======================================================================
+2.1. Mục tiêu và tác nhân
+Người dùng muốn tái sử dụng cấu trúc category và các test case sẵn có
+để tạo một bộ dữ liệu mới. Hệ thống tạo các bản ghi category/test case
+mới và giữ cấu trúc cha - con trong cây được chọn.
+
+2.2. Đầu vào và kết quả
+API: POST /category/{id}/clone
+Tham số:
+- id: ID category nguồn trên đường dẫn.
+- categoryType: loại của category gốc mới; bắt buộc.
+- name: tên yêu cầu cho category gốc mới; bắt buộc.
+- description: mô tả category gốc mới; mặc định chuỗi rỗng nếu bỏ qua.
+- Accept: header tùy chọn; controller không dùng để quyết định nghiệp vụ.
+API khai báo Content-Type application/json;charset=utf-8 nhưng name,
+categoryType, description được nhận bằng request parameter, không phải
+một DTO JSON trong body.
+
+Thành công: HTTP 200, BaseResponse.status = 200,
+message = "Clone successfully", data = category gốc mới.
+Response không chứa báo cáo số category/test case đã clone.
+Lỗi nghiệp vụ bên trong luồng clone thường được trả HTTP 500,
+message = "Clone fail! " + chi tiết lỗi, data = null.
+
+2.3. Điều kiện và quy tắc dữ liệu
+CL-01. Category nguồn phải tồn tại và thuộc domain đang xử lý.
+       Hiện SecurityUtil.getDomainId() trả cố định 1; chưa lấy domain
+       động từ người dùng đăng nhập trong implementation này.
+CL-02. Không clone category gốc hệ thống có categoryParentId = null.
+CL-03. name không null/chuỗi rỗng; tên và mô tả tối đa 255 ký tự.
+       Kiểm tra rỗng xảy ra trước trim nên tên toàn khoảng trắng chưa
+       được chặn rõ ràng. Tên sau khi sinh hậu tố cũng phải <= 255.
+CL-04. Nếu tên yêu cầu sau trim bằng tên nguồn sau trim, tự sinh tên
+       dạng <Tên nguồn>_Clone(n).
+CL-05. Nếu đổi tên, kiểm tra tên bằng truy vấn LIKE có escape ký tự
+       đặc biệt. Có tên trùng thì báo lỗi; không tự tăng hậu tố nhánh này.
+CL-06. Truy vấn kiểm tra tên và tìm tiền tố clone không lọc domain
+       hoặc category cha; phạm vi tra cứu hiện tại là toàn bảng.
+CL-07. Category gốc mới là anh em với category nguồn: giữ nguyên cha
+       của nguồn. API không có tham số chọn cha đích.
+CL-08. categoryType đầu vào chỉ áp dụng cho gốc cây mới; category con
+       mới giữ categoryType của category con nguồn.
+CL-09. Test case được lấy theo categoryId nguồn VÀ domainId hiện tại.
+       Test case khác domain sẽ không được chọn để clone.
+CL-10. Toàn bộ cây được xử lý trong một giao dịch. Lỗi ở bất kỳ node
+       hoặc test case nào làm rollback cả cây, kể cả bản ghi đã save.
+CL-11. Cây có node lặp lại/chu trình bị phát hiện thì dừng và báo lỗi.
+       Không có quy tắc kiểm tra tập giá trị categoryType trong service.
+
+2.4. Luồng chính chi tiết
+Bước 01 - Người dùng chọn category và cung cấp loại, tên, mô tả.
+Bước 02 - Controller nhận request và gọi CategoryService.clone().
+Bước 03 - Service lấy domainId, bắt đầu xử lý trong giao dịch.
+Bước 04 - Đọc category nguồn. Nếu thiếu hoặc sai domain: chuyển luồng lỗi.
+Bước 05 - Tạo gốc cây mới:
+  a. Kiểm tra tên, mô tả, domain và điều kiện không phải gốc hệ thống.
+  b. Xác định tên mới theo quy tắc giữ tên/đổi tên.
+  c. Lấy max(posIndex) trong nhóm cùng cha đích và categoryType đích.
+     Không có bản ghi thì max = 0; bản mới có posIndex = max + 1.
+  d. Tạo category mới, sao chép các trường quy định tại mục 2.6.
+  e. Save và nhận ID mới; lập ánh xạ ID category cũ -> category mới.
+Bước 06 - Lấy các test case của category nguồn trong cùng domain.
+  Với từng test case:
+  a. Kiểm tra tên/mô tả tối đa 255 và nguồn tồn tại, đúng domain.
+  b. Vì luồng truyền lại chính tên test case nguồn, hệ thống đi nhánh
+     tự sinh <Tên test case>_Clone(n).
+  c. Lấy max(posIndex) theo domain và category đích; tăng thêm 1.
+  d. Tạo test case mới, gắn categoryId = ID category vừa clone.
+  e. Save test case mới.
+  Nếu không có test case thì tiếp tục, không coi là lỗi.
+Bước 07 - Đưa category nguồn vào hàng đợi duyệt cây.
+Bước 08 - Lấy lần lượt một category cha cũ khỏi hàng đợi:
+  a. Tra category cha mới từ bảng ánh xạ; thiếu ánh xạ thì báo lỗi.
+  b. Lấy các category con trực tiếp theo categoryParentId cũ.
+  c. Không có con thì chuyển sang phần tử tiếp theo trong hàng đợi.
+  d. Với từng con, kiểm tra ID đã có trong ánh xạ chưa; nếu có thì
+     báo "Category tree contains a cycle".
+  e. Clone con, gắn cha = ID cha mới. Tên và mô tả truyền vào là của
+     con nguồn, vì vậy tên con cũng được tự thêm hậu tố clone.
+  f. Clone các test case của con vào category con mới.
+  g. Lưu ánh xạ và đưa con nguồn vào hàng đợi.
+Bước 09 - Lặp đến khi hàng đợi rỗng. Đây là duyệt theo chiều rộng (BFS).
+Bước 10 - Hoàn tất giao dịch; trả category gốc mới cho người dùng.
+
+2.5. Cách sinh số thứ tự clone
+- Tìm bản ghi có tên bắt đầu bằng <Tên>_Clone( và có ID lớn nhất.
+- Chưa có bản ghi: dùng _Clone(1).
+- Có bản ghi: tìm cặp ngoặc chứa số đầu tiên bằng mẫu (\d+), lấy số
+  đó cộng 1; không tìm được thì dùng _Clone(1).
+- Đây không phải phép lấy số hậu tố lớn nhất. Tên nguồn vốn có ngoặc
+  số hoặc dữ liệu tên bất thường có thể làm số được chọn khác kỳ vọng.
+- Nhánh tự sinh tên không có bước kiểm tra trùng tên cuối cùng riêng.
+- Thứ tự category con/test case đọc từ repository không có order by
+  tường minh; không đảm bảo bản clone giữ thứ tự posIndex của nguồn.
+
+2.6. Dữ liệu được sao chép
+Category mới:
+- ID: sinh mới.
+- categoryName: tên đã xác định ở luồng trên.
+- categoryParentId: cha cũ đối với gốc cây; cha mới đối với con.
+- categoryType: request đối với gốc cây; loại nguồn đối với con.
+- remark, treeType: sao chép từ nguồn.
+- domainId: domain đang xử lý.
+- posIndex: max trong nhóm đích + 1.
+- description: request đối với gốc cây; mô tả nguồn đối với con.
+
+Test case mới:
+- ID: sinh mới; name: tên clone; description: mô tả nguồn.
+- Sao chép state, version, versionDescription, offerVersionId,
+  timeout, testCaseDefinitionId.
+- categoryId: ID category mới; domainId: domain đang xử lý.
+- posIndex: max trong category đích cùng domain + 1.
+- createAt, updateDate: thời điểm tạo bản clone.
+- testCaseDefinitionId được giữ nguyên, không tạo definition mới.
+  processCloneTestCase hiện chỉ tạo bản ghi TestCase; không có bước
+  sao chép riêng các bảng con, step hoặc characteristic tại method này.
+
+2.7. Luồng ngoại lệ và tác động
+- Category không tồn tại/sai domain: "Category id = ... does not exist".
+- Gốc hệ thống: "Category name = ... must be different from the root".
+- Tên rỗng: "Name = ... is required" hoặc thông báo tương ứng test case.
+- Tên/mô tả quá dài: thông báo giới hạn 0..255 ký tự.
+- Đổi tên bị trùng: "Category name clone = ... already exist".
+- Test case nguồn không hợp lệ: báo lỗi tương ứng test case.
+- Chu trình hoặc thiếu ánh xạ: dừng xử lý cây.
+- Lỗi save/DB: xử lý theo ngoại lệ phát sinh; giao dịch không được giữ
+  một phần cây. Lỗi commit có thể được controller trả 500 trực tiếp.
+- Khi service bắt lỗi, đánh dấu rollbackOnly và trả BaseResponse 500.
+- Lỗi binding request trước khi vào service theo xử lý của framework;
+  không đồng nhất với nhóm lỗi clone trả 500 nói trên.
+
+2.8. Ví dụ nghiệp vụ
+Nguồn:
+  A (cha = P)
+    - TC_A
+    B
+      - TC_B
+    C
+Nếu gửi name = A, chưa có bản clone và dữ liệu hợp lệ, kết quả dự kiến:
+  P
+    A (cây nguồn)
+    A_Clone(1)
+      - TC_A_Clone(1)
+      B_Clone(1)
+        - TC_B_Clone(1)
+      C_Clone(1)
+Nếu gửi name = A_New chưa trùng, chỉ tên gốc mới là A_New; tên các
+category con và test case vẫn được sinh hậu tố theo quy tắc trên.
+
+3. CRONJOB CỦA EXECUTION
+======================================================================
+3.1. Mục tiêu, quan hệ và trạng thái
+Người dùng cấu hình thời điểm chạy tự động và chọn các execution được
+phép start theo lịch đó. Scheduler gọi lại luồng start execution.
+
+Quan hệ dữ liệu:
+- Một cronjob có nhiều mapping/execution.
+- Một execution có tối đa một mapping trên toàn hệ thống; kể cả mapping
+  đang false vẫn chiếm liên kết. DB có unique trên execution_info_id.
+- Cronjob chỉ có id, name, cronValue; không có status bật/tắt riêng.
+- Trạng thái bật/tắt thuộc từng mapping. Cronjob có ít nhất một mapping
+  true thì cần có lịch trong bộ nhớ; không có true thì hủy lịch.
+- Bật mapping không start ngay; chờ lần kích hoạt phù hợp cronValue.
+- Tắt/xóa mapping không có bước stop execution đã được start trước đó.
+
+3.2. Danh mục API
+Quản lý lịch:
+  POST   /cronjobs                             Tạo cronjob
+  GET    /cronjobs/{id}                        Xem cronjob
+  GET    /cronjobs                             Tìm kiếm, phân trang
+  PUT    /cronjobs/{id}                        Sửa cronjob
+  DELETE /cronjobs/{id}                        Xóa cronjob
+  PATCH  /cronjobs/{cronjobId}/executions/status Bật/tắt toàn bộ mapping
+Quản lý liên kết:
+  POST   /cronjob-executions                   Tạo mapping
+  GET    /cronjob-executions/{id}              Xem mapping
+  GET    /cronjob-executions                   Tìm kiếm, phân trang
+  PUT    /cronjob-executions/{id}              Sửa mapping
+  DELETE /cronjob-executions/{id}              Xóa mapping
+  PATCH  /cronjob-executions/{id}/status       Bật/tắt một mapping
+ID trên API mapping là ID CronjobExecution, không phải ID ExecutionInfo.
+
+3.3. Luồng tạo cronjob
+Bước 01 - Người dùng nhập name và cronValue.
+Bước 02 - Kiểm tra DTO: name không blank, <= 255; cronValue không blank,
+          <= 100 ký tự.
+Bước 03 - Service trim name, kiểm tra tên không rỗng.
+Bước 04 - Trim cronValue; phải có đúng 6 trường theo thứ tự:
+          giây phút giờ ngày-trong-tháng tháng ngày-trong-tuần.
+Bước 05 - Kiểm tra biểu thức bằng CronSequenceGenerator.
+Bước 06 - Kiểm tra tên đã tồn tại, không phân biệt hoa/thường.
+Bước 07 - Save cronjob và trả dữ liệu id/name/cronValue.
+Kết quả: BaseResponse 200, "Created successfully".
+Tạo cronjob đơn thuần chưa đăng ký lịch do chưa có mapping đang bật.
+Ví dụ cronValue: "0 0 9 * * *" - dự kiến mỗi ngày lúc 09:00:00 theo
+múi giờ mặc định của runtime. Không có timezone riêng trong request.
+
+3.4. Luồng gắn execution vào cronjob
+Request JSON: {"cronjobId":10,"executionInfoId":20,"status":true}
+Bước 01 - Kiểm tra cả ba trường khác null.
+Bước 02 - Tìm cronjob; thiếu thì lỗi 404 "Cronjob not found".
+Bước 03 - Tìm execution; thiếu thì lỗi 404 "Execution info not found".
+Bước 04 - Execution phải có ít nhất một execution element; nếu không,
+          lỗi 400 "Execution must have at least one execution element".
+Bước 05 - Kiểm tra execution chưa có mapping nào. Đã có thì lỗi 409
+          "Execution already belongs to another cronjob". Quy tắc này
+          cũng từ chối tạo lặp trong cùng cronjob, dù thông báo nói another.
+Bước 06 - Tạo mapping, saveAndFlush trong giao dịch.
+Bước 07 - Sau commit, gọi scheduleIfNecessary(cronjobId):
+  a. Không có mapping true: hủy lịch nếu có.
+  b. Có mapping true và đã có task trong bộ nhớ: giữ lịch hiện tại.
+  c. Có mapping true và chưa có task: đọc cronjob và đăng ký CronTrigger.
+Bước 08 - Trả mapping gồm ID, cronjob ID/tên, execution ID/tên, status.
+Lưu ý: tạo mapping không kiểm tra execution.state = 1. Điều kiện đó
+được kiểm tra lại khi đến giờ start.
+
+3.5. Sửa cronjob và sửa mapping
+Sửa cronjob:
+- Tìm cronjob, kiểm tra tên/cron giống tạo mới; kiểm tra tên trùng nhưng
+  loại trừ chính ID đang sửa.
+- So cronValue cũ với giá trị mới sau trim, rồi save.
+- Chỉ đổi tên: không đăng ký lại lịch.
+- Đổi cronValue: sau commit hủy lịch cũ, đăng ký lịch mới nếu còn mapping
+  true. Không có true thì không đăng ký lại.
+
+Sửa mapping:
+- Tìm mapping hiện tại, ghi nhớ cronjob cũ.
+- Kiểm tra cronjob đích, execution đích, execution element và trùng
+  execution nhưng loại trừ chính mapping đang sửa.
+- Gán lại cronjob, execution và status; saveAndFlush.
+- Sau commit, đánh giá lịch cho cả cronjob cũ và cronjob mới.
+- PUT mapping không dùng expectedStatus; chống cập nhật dữ liệu cũ
+  tại mục 3.6 chỉ áp dụng cho API thay đổi status chuyên biệt.
+
+3.6. Bật/tắt một mapping và chống dữ liệu cũ
+Request: {"expectedStatus":false,"status":true}
+expectedStatus là trạng thái mà người dùng đã đọc trước khi thao tác.
+Bước 01 - Tìm mapping; thiếu thì 404 "Cronjob execution not found".
+Bước 02 - Chạy cập nhật có điều kiện ID và status hiện tại phải bằng
+          expectedStatus. status mới lấy từ request.
+Bước 03 - Không cập nhật được bản ghi nào: trả lỗi 409
+          "Data has been changed by another session. Please reload the page."
+Bước 04 - Thành công: sau commit đánh giá lại lịch cronjob.
+Bước 05 - Đọc lại mapping và trả trạng thái mới.
+API này không kiểm tra lại execution element hoặc state của execution.
+expectedStatus chỉ phát hiện trạng thái hiện tại khác giá trị kỳ vọng,
+không phải cơ chế version phát hiện mọi thay đổi đã từng xảy ra.
+
+3.7. Bật/tắt toàn bộ mapping của một cronjob
+Request ví dụ:
+  {"status":false,"items":[
+    {"id":101,"expectedStatus":true},
+    {"id":102,"expectedStatus":false}
+  ]}
+Bước 01 - Validate: items không rỗng; status, từng id và expectedStatus
+          không null. Cronjob phải tồn tại.
+Bước 02 - Đọc toàn bộ mapping của cronjob.
+Bước 03 - Trùng ID trong request: lỗi 400 "Duplicate mapping id".
+Bước 04 - Tập ID request phải bằng chính xác tập ID trong DB.
+          Thiếu, thừa hoặc có mapping mới/xóa bởi phiên khác: lỗi 409.
+          API này không nhận một tập con hoặc chỉ danh sách của một trang.
+Bước 05 - Với từng mapping, đối chiếu expectedStatus và cập nhật có
+          điều kiện. Bất kỳ mapping nào không khớp thì lỗi 409.
+Bước 06 - Tất cả hợp lệ: flush; sau commit đánh giá lại lịch một lần.
+Bước 07 - Trả danh sách toàn bộ mapping với trạng thái mới.
+Giao dịch đảm bảo lỗi giữa chừng rollback các cập nhật trước đó.
+Cronjob không có mapping không gửi được request items rỗng hợp lệ.
+
+3.8. Xóa và tra cứu
+Xóa mapping:
+- Tìm mapping, ghi nhớ cronjobId, delete và flush.
+- Sau commit đánh giá lại lịch; xóa mapping true cuối cùng sẽ hủy lịch.
+- Xóa liên kết không có bước xóa bản ghi execution hoặc cronjob.
+
+Xóa cronjob:
+- Tìm cronjob; thiếu thì 404.
+- Còn bất kỳ mapping nào, kể cả false: lỗi 409
+  "Remove all cronjob executions before deleting cronjob".
+- Không còn mapping: delete; sau commit hủy lịch.
+
+Tra cứu:
+- Cronjob: keyword đã trim tìm trong name hoặc cronValue, không phân
+  biệt hoa/thường; keyword rỗng là không lọc theo từ khóa.
+- Mapping: keyword tìm theo tên cronjob hoặc execution; có thể lọc thêm
+  cronjobId, executionInfoId, status. Các bộ lọc được kết hợp cùng nhau.
+- Danh sách trả theo Page/Pageable; xem chi tiết dùng ID tương ứng.
+
+3.9. Vòng đời scheduler
+Khi ứng dụng sẵn sàng:
+  1. Tìm tất cả cronjob có ít nhất một mapping true.
+  2. Đăng ký lịch cho từng cronjob.
+  3. Lỗi đăng ký một cronjob được log, không dừng việc nạp cronjob khác.
+
+Đăng ký lịch:
+  1. Kiểm tra cronValue hợp lệ.
+  2. Hủy task cũ của ID cronjob nếu có.
+  3. Tạo task chạy executeCronjob(id) theo CronTrigger.
+  4. Lưu ScheduledFuture trong map bộ nhớ theo cronjobId.
+Thread pool lấy app.scheduler.pool-size, mặc định 5.
+CronTrigger không truyền timezone riêng: dùng mặc định runtime.
+
+Khi đến thời điểm kích hoạt:
+  1. Đọc lại DB để lấy các mapping status = true của cronjob.
+  2. Không có mapping true: hủy lịch, kết thúc lần kích hoạt.
+  3. Tạo danh tính hệ thống username = "cronjob:<cronjobId>".
+  4. Duyệt từng mapping, gọi ExecutionInfoService.start(executionId,
+     systemUserDetails). Các lời gọi start trong một lượt là tuần tự;
+     không chờ toàn bộ execution hoàn tất mới start execution kế tiếp.
+  5. Log message nhận được từ start. Nếu một start ném RuntimeException,
+     log lỗi của execution đó và tiếp tục execution khác.
+  6. Scheduler không tự retry ngay execution bị từ chối/lỗi; lần lịch
+     tiếp theo sẽ lại đọc các mapping đang bật.
+
+Khi hủy lịch: future.cancel(false), không ngắt tác vụ đang chạy.
+Khi ứng dụng tắt: cancel tất cả future và xóa map bộ nhớ.
+Sau khởi động lại, lịch được phục hồi từ DB; không thấy luồng bù các
+lần kích hoạt bị bỏ lỡ lúc ứng dụng dừng trong implementation này.
+
+3.10. Luồng start execution do cronjob gọi
+Bước 01 - Đọc ExecutionInfo theo ID.
+  - Không tồn tại: BaseResponse 409 "Execution Info not exists".
+  - Không có element: 409 "You must add at least 1 execution element".
+  - state = 1: 409 "You can't start this execution".
+  Các nhánh này trả kết quả nghiệp vụ, không ném exception từ điều kiện.
+Bước 02 - Gọi checkOldExecutionHistory để nhận historyId.
+  Implementation hiện chỉ tăng AtomicLong trong bộ nhớ; chưa thấy lưu
+  bản ghi lịch sử execution hoặc snapshot dữ liệu tại service này.
+Bước 03 - Gọi POST tới <app.execution-api.url>/<executionInfoId>,
+  Content-Type application/json, body null; parse response thành map.
+Bước 04 - Nếu HTTP 200 và trường id > 0:
+  a. Đọc execution theo id do API trả về, không mặc định dùng ID request.
+  b. Không tìm thấy execution: BaseResponse 409 "Start fail !".
+  c. Có execution: gán startExecutionTime = thời điểm hiện tại và save.
+  d. Ghi user log action START với username "cronjob:<cronjobId>".
+  e. Đẩy ExecutionUploadTask sang taskExecutor xử lý bất đồng bộ.
+  f. Trả 200 "Start successfully !" cùng executionInfoHistoryId và
+     maxExecutionHistory, được chuyển sang chuỗi.
+Bước 05 - HTTP 200 nhưng id thiếu/không dương: 409 "Start fail !".
+Bước 06 - JSON không parse được: RuntimeException
+  "Call API error, please try again!"; scheduler bắt và ghi log.
+Bước 07 - Response HTTP khác 200 mà không bị RestTemplate ném lỗi:
+  service trả BaseResponse 200 với message "Call API error, please try again!".
+  Lỗi HTTP/kết nối hoặc id không chuyển được sang số có thể ném runtime
+  exception và được scheduler xử lý tương tự lỗi start khác.
+
+ExecutionUploadTask hiện tại:
+- Với tham số của start, sleep khoảng 1 giây.
+- Đọc lại execution, gán currentState = 1 và completedTime = hiện tại,
+  rồi save nếu execution vẫn tồn tại.
+- Không có polling kết quả thực tế hoặc tổng hợp pass/fail trong task.
+- timeout = 300000 chỉ tham gia tính delay có chặn tối đa 5000 trong
+  task hiện tại; không phải bằng chứng về timeout chạy test 5 phút.
+- start không tự set state = 1, và task cập nhật currentState, không
+  phải state. Không thể suy ra cơ chế khóa đang chạy hoàn chỉnh chỉ từ
+  hai method này.
+
+3.11. Quy tắc giao dịch và phản hồi cần lưu ý
+- Tạo/sửa/xóa cronjob, mapping và đổi status dùng giao dịch DB.
+- Điều chỉnh lịch chạy được gọi sau commit để scheduler đọc dữ liệu
+  đã được xác nhận; rollback không kích hoạt callback afterCommit.
+- DB đã commit rồi scheduler đăng ký lỗi thì DB không rollback theo
+  callback. Cần kiểm tra log/trạng thái lịch khi xảy ra tình huống này.
+- Cronjob API trả BaseResponse; lỗi service dùng ResponseStatusException
+  với mã 400/404/409. Hình thức body lỗi cuối cùng phụ thuộc cấu hình
+  xử lý lỗi của framework, không mặc định giống response thành công.
+- Scheduler hiện log message từ start ở mức info kể cả response nghiệp
+  vụ 409. Chỉ nhánh ném RuntimeException được log ở mức error.
+- “Start successfully” xác nhận luồng khởi phát đã đi qua các bước trên;
+  không phải xác nhận mọi test case đã chạy và đạt kết quả.
+
+4. KỊCH BẢN NGHIỆP VỤ ĐỂ NGHIỆM THU
+======================================================================
+Các kịch bản dưới đây là checklist đề xuất theo hành vi mã nguồn;
+không khẳng định đã chạy kiểm thử trong lần lập tài liệu.
+
+Clone:
+TC-CL-01. Clone category không có con/test case: tạo đúng một category.
+TC-CL-02. Clone cây nhiều cấp: số category mới bằng số node nguồn;
+          mọi category con mới trỏ về cha mới tương ứng.
+TC-CL-03. Test case cùng domain chuyển sang category mới; definitionId
+          giữ nguyên, thời gian tạo/cập nhật mới, ID test case mới.
+TC-CL-04. Giữ tên nguồn: sinh hậu tố; đổi tên chưa trùng: dùng tên trim.
+TC-CL-05. Nguồn không tồn tại/sai domain/gốc hệ thống: lỗi và không tạo cây.
+TC-CL-06. Tên sau thêm hậu tố vượt 255 hoặc lỗi ở con cuối: rollback cả cây.
+TC-CL-07. Test case khác domain không được clone; category con khác domain
+          được đọc theo cha nhưng sẽ làm clone thất bại khi validate.
+TC-CL-08. Chu trình: lỗi và rollback; dữ liệu tên có ngoặc số cần đối chiếu
+          kết quả sinh tên thực tế với quy tắc tại mục 2.5.
+
+Cronjob:
+TC-CR-01. Tạo cron hợp lệ 6 trường; cron 5/7 trường, sai cú pháp bị từ chối.
+TC-CR-02. Tên trùng không phân biệt hoa/thường bị từ chối.
+TC-CR-03. Tạo cronjob chưa mapping: chưa có lịch; mapping true đầu tiên
+          tạo lịch, mapping false không làm lịch tự chạy.
+TC-CR-04. Execution thiếu element hoặc đã có mapping: từ chối liên kết.
+TC-CR-05. Tắt mapping true cuối cùng: hủy lịch; bật lại: đăng ký lịch.
+TC-CR-06. PATCH status với expectedStatus cũ: 409, không ghi đè trạng thái.
+TC-CR-07. Batch thiếu/thừa ID, trùng ID hoặc một status cũ: từ chối và
+          không giữ một phần cập nhật.
+TC-CR-08. Sửa cronValue: đăng ký lại sau commit; sửa tên: giữ lịch.
+TC-CR-09. Chuyển mapping sang cronjob khác: lịch hai phía được đánh giá lại.
+TC-CR-10. Xóa cronjob còn mapping false cũng bị từ chối; bỏ hết mapping
+          mới cho xóa cronjob.
+TC-CR-11. Đến giờ: chỉ start mapping true. Một execution lỗi không ngăn
+          các execution còn lại trong cùng cronjob được thử start.
+TC-CR-12. Execution state = 1: bị từ chối start; mapping vẫn giữ true.
+TC-CR-13. Restart ứng dụng: phục hồi lịch có mapping true từ DB.
+TC-CR-14. Execution đã start rồi tắt mapping: không gọi stop execution.
+TC-CR-15. API trả id sai/JSON lỗi/kết nối lỗi: kiểm tra message và log;
+          không suy ra kết quả chạy test từ thông báo scheduler.
+
+5. ĐIỂM CẦN CHỐT NGHIỆP VỤ / KHOẢNG TRỐNG HIỆN TẠI
+======================================================================
+Các điểm sau là nhận xét BA, chưa phải yêu cầu đã được phê duyệt:
+1. Domain của clone đang cố định 1; xác định nguồn domain thực tế khi
+   triển khai nhiều domain. Cronjob/mapping service chưa có kiểm tra
+   domain riêng tương tự clone.
+2. Chốt tính duy nhất của tên: toàn hệ thống, theo domain hay theo cha;
+   truy vấn kiểm tra tên clone hiện dùng phạm vi toàn bảng.
+3. Chốt tên con có cần giữ nguyên và posIndex có cần giữ thứ tự nguồn;
+   hiện tên con được thêm hậu tố và thứ tự duyệt không được sort rõ ràng.
+4. Chốt có cần clone sâu definition/steps/characteristics; hiện TestCase
+   mới dùng chung testCaseDefinitionId với nguồn.
+5. Chốt kiểm tra tên toàn khoảng trắng, categoryType hợp lệ và xử lý
+   sinh tên khi nhiều người clone đồng thời; chưa có cơ chế khóa riêng
+   trong luồng đọc tên/maxPosIndex rồi tạo bản ghi mới.
+6. Chốt timezone nghiệp vụ và cách hiển thị lần chạy kế tiếp; request
+   hiện không có timezone hoặc trường nextRunTime.
+7. Chốt xử lý khi execution đang chạy, start trùng, retry và thời gian
+   chờ API. Kiểm tra state hiện tại chưa phải khóa nguyên tử chống race.
+8. Chốt triển khai nhiều instance: lịch lưu trong bộ nhớ từng instance;
+   chưa thấy leader/distributed lock trong scheduler đã đọc, nên nhiều
+   instance có thể cùng nạp và kích hoạt một cronjob.
+9. Chốt nguồn kết quả execution và lịch sử bền vững; history service và
+   upload task hiện có hành vi đơn giản như mô tả ở mục 3.10.
+10. Chốt UX khi nhận 409 dữ liệu cũ, batch trên danh sách phân trang và
+    khi DB lưu thành công nhưng đăng ký scheduler thất bại.
+
+6. NGUỒN ĐỐI CHIẾU TRONG REPOSITORY
+======================================================================
+Đường dẫn dưới đây tính từ thư mục gốc dự án.
+Clone:
+- src/main/java/org/example/controller/CategoryApi.java
+- src/main/java/org/example/controller/CategoryApiController.java
+- src/main/java/org/example/service/CategoryService.java
+- src/main/java/org/example/service/TestCaseService.java
+- src/main/java/org/example/repository/CategoryRepository.java
+- src/main/java/org/example/repository/TestCaseRepository.java
+- src/main/java/org/example/utils/SecurityUtil.java
+
+Cronjob và execution:
+- src/main/java/org/example/controller/CronjobApi.java
+- src/main/java/org/example/controller/CronjobExecutionApi.java
+- src/main/java/org/example/service/CronjobService.java
+- src/main/java/org/example/service/CronjobExecutionService.java
+- src/main/java/org/example/service/DynamicCronjobSchedulerService.java
+- src/main/java/org/example/service/ExecutionInfoService.java
+- src/main/java/org/example/service/ExecutionInfoHistoryService.java
+- src/main/java/org/example/task/ExecutionUploadTask.java
+- src/main/java/org/example/config/TaskExecutorConfig.java
+- src/main/java/org/example/model/Cronjob.java
+- src/main/java/org/example/model/CronjobExecution.java
+- src/main/java/org/example/repository/CronjobRepository.java
+- src/main/java/org/example/repository/CronjobExecutionRepository.java
+- src/main/java/org/example/dao/CronjobRequest.java
+- src/main/java/org/example/dao/CronjobExecutionRequest.java
+- src/main/java/org/example/dao/ChangeStatusRequest.java
+- src/main/java/org/example/dao/BatchChangeStatusRequest.java
+- src/main/java/org/example/dao/BatchStatusItem.java
+- src/main/java/org/example/controller/BaseResponseApi.java
+
+KẾT THÚC TÀI LIỆU
