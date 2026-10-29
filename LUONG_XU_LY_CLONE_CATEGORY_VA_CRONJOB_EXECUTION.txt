@@ -277,23 +277,15 @@ không phải cơ chế version phát hiện mọi thay đổi đã từng xảy
 
 3.7. Bật/tắt toàn bộ mapping của một cronjob
 Request ví dụ:
-  {"status":false,"items":[
-    {"id":101,"expectedStatus":true},
-    {"id":102,"expectedStatus":false}
-  ]}
-Bước 01 - Validate: items không rỗng; status, từng id và expectedStatus
-          không null. Cronjob phải tồn tại.
-Bước 02 - Đọc toàn bộ mapping của cronjob.
-Bước 03 - Trùng ID trong request: lỗi 400 "Duplicate mapping id".
-Bước 04 - Tập ID request phải bằng chính xác tập ID trong DB.
-          Thiếu, thừa hoặc có mapping mới/xóa bởi phiên khác: lỗi 409.
-          API này không nhận một tập con hoặc chỉ danh sách của một trang.
-Bước 05 - Với từng mapping, đối chiếu expectedStatus và cập nhật có
-          điều kiện. Bất kỳ mapping nào không khớp thì lỗi 409.
-Bước 06 - Tất cả hợp lệ: flush; sau commit đánh giá lại lịch một lần.
-Bước 07 - Trả danh sách toàn bộ mapping với trạng thái mới.
-Giao dịch đảm bảo lỗi giữa chừng rollback các cập nhật trước đó.
-Cronjob không có mapping không gửi được request items rỗng hợp lệ.
+  {"status":false}
+Bước 01 - Validate: status không null. Cronjob phải tồn tại (404 nếu thiếu).
+Bước 02 - Cập nhật status toàn bộ mapping theo cronjobId bằng một câu
+          lệnh bulk update trong giao dịch, kể cả mapping ngoài trang FE.
+          Ghi đè trạng thái hiện tại; không yêu cầu items hay expectedStatus.
+Bước 03 - Sau commit đánh giá lại lịch một lần.
+Bước 04 - Trả danh sách toàn bộ mapping với trạng thái mới.
+Cronjob chưa có mapping trả thành công với danh sách rỗng.
+FE tải lại trang hiện tại sau khi cập nhật thành công.
 
 3.8. Xóa và tra cứu
 Xóa mapping:
@@ -424,8 +416,8 @@ TC-CR-03. Tạo cronjob chưa mapping: chưa có lịch; mapping true đầu ti�
 TC-CR-04. Execution thiếu element hoặc đã có mapping: từ chối liên kết.
 TC-CR-05. Tắt mapping true cuối cùng: hủy lịch; bật lại: đăng ký lịch.
 TC-CR-06. PATCH status với expectedStatus cũ: 409, không ghi đè trạng thái.
-TC-CR-07. Batch thiếu/thừa ID, trùng ID hoặc một status cũ: từ chối và
-          không giữ một phần cập nhật.
+TC-CR-07. Batch chỉ gửi status: cập nhật toàn bộ mapping theo cronjobId,
+          kể cả ngoài trang hiện tại; cronjob chưa có mapping vẫn thành công.
 TC-CR-08. Sửa cronValue: đăng ký lại sau commit; sửa tên: giữ lịch.
 TC-CR-09. Chuyển mapping sang cronjob khác: lịch hai phía được đánh giá lại.
 TC-CR-10. Xóa cronjob còn mapping false cũng bị từ chối; bỏ hết mapping
@@ -495,7 +487,6 @@ Cronjob và execution:
 - src/main/java/org/example/dao/CronjobExecutionRequest.java
 - src/main/java/org/example/dao/ChangeStatusRequest.java
 - src/main/java/org/example/dao/BatchChangeStatusRequest.java
-- src/main/java/org/example/dao/BatchStatusItem.java
 - src/main/java/org/example/controller/BaseResponseApi.java
 
 KẾT THÚC TÀI LIỆU

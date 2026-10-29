@@ -14,7 +14,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -110,29 +109,7 @@ public class CronjobExecutionService {
     @Transactional
     public List<CronjobExecutionResponse> changeAllStatuses(Long cronjobId, BatchChangeStatusRequest request) {
         cronjobService.getEntity(cronjobId);
-        List<CronjobExecution> mappings = repository.findByCronjobId(cronjobId);
-
-        Set<Long> requestIds = request.getItems().stream().map(BatchStatusItem::getId).collect(Collectors.toSet());
-        if (requestIds.size() != request.getItems().size()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Duplicate mapping id");
-        }
-        Set<Long> databaseIds = mappings.stream().map(CronjobExecution::getId).collect(Collectors.toSet());
-        if (!databaseIds.equals(requestIds)) {
-            throw conflict(STALE_MESSAGE);
-        }
-
-        Map<Long, BatchStatusItem> itemById = request.getItems().stream().collect(Collectors.toMap(BatchStatusItem::getId, Function.identity()));
-        for (CronjobExecution mapping : mappings) {
-            BatchStatusItem item = itemById.get(mapping.getId());
-            if (!Objects.equals(mapping.getStatus(), item.getExpectedStatus())) {
-                throw conflict(STALE_MESSAGE);
-            }
-            int updated = repository.updateStatusIfMatches(mapping.getId(), item.getExpectedStatus(), request.getStatus());
-            if (updated == 0) {
-                throw conflict(STALE_MESSAGE);
-            }
-        }
-        repository.flush();
+        repository.updateStatusByCronjobId(cronjobId, request.getStatus());
         CronjobService.afterCommit(() -> schedulerService.scheduleIfNecessary(cronjobId));
         return repository.findByCronjobId(cronjobId).stream().map(CronjobExecutionResponse::from).collect(Collectors.toList());
     }

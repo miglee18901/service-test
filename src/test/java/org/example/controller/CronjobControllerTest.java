@@ -113,12 +113,8 @@ class CronjobControllerTest {
     }
 
     @Test
-    void batchStatus_cronjobIdInPath_passesIdToService() throws Exception {
-        BatchStatusItem item = new BatchStatusItem();
-        item.setId(11L);
-        item.setExpectedStatus(true);
+    void batchStatus_statusOnly_passesCronjobIdAndStatusToService() throws Exception {
         BatchChangeStatusRequest request = new BatchChangeStatusRequest();
-        request.setItems(Collections.singletonList(item));
         request.setStatus(false);
         when(executionService.changeAllStatuses(eq(7L), any()))
                 .thenReturn(Collections.emptyList());
@@ -128,7 +124,30 @@ class CronjobControllerTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk());
 
-        verify(executionService).changeAllStatuses(eq(7L), any());
+        org.mockito.ArgumentCaptor<BatchChangeStatusRequest> captor =
+                org.mockito.ArgumentCaptor.forClass(BatchChangeStatusRequest.class);
+        verify(executionService).changeAllStatuses(eq(7L), captor.capture());
+        assertEquals(Boolean.FALSE, captor.getValue().getStatus());
+    }
+
+    @Test
+    void batchStatus_missingStatus_returnsBadRequest() throws Exception {
+        mockMvc().perform(patch("/cronjobs/{cronjobId}/executions/status", 7L)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isBadRequest());
+
+        org.mockito.Mockito.verifyNoInteractions(executionService);
+    }
+
+    @Test
+    void batchStatus_nullStatus_returnsBadRequest() throws Exception {
+        mockMvc().perform(patch("/cronjobs/{cronjobId}/executions/status", 7L)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"status\":null}"))
+                .andExpect(status().isBadRequest());
+
+        org.mockito.Mockito.verifyNoInteractions(executionService);
     }
 
     @Test

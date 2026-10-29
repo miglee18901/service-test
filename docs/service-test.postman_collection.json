@@ -195,7 +195,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"items\": [\n    {\n      \"id\": 100,\n      \"expectedStatus\": true\n    },\n    {\n      \"id\": 101,\n      \"expectedStatus\": false\n    }\n  ],\n  \"status\": false\n}",
+              "raw": "{\n  \"status\": false\n}",
               "options": {
                 "raw": {
                   "language": "json"

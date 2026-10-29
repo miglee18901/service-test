@@ -38,6 +38,12 @@ public interface CronjobExecutionRepository extends JpaRepository<CronjobExecuti
             Pageable pageable);
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("update CronjobExecution ce set ce.status = :newStatus where ce.cronjob.id = :cronjobId")
+    int updateStatusByCronjobId(
+            @Param("cronjobId") Long cronjobId,
+            @Param("newStatus") Boolean newStatus);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("update CronjobExecution ce set ce.status = :newStatus " +
             "where ce.id = :id and ce.status = :expectedStatus")
     int updateStatusIfMatches(

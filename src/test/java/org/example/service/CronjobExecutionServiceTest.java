@@ -263,91 +263,59 @@ class CronjobExecutionServiceTest {
     }
 
     @Test
-    void batchStatus_incompleteSnapshot_rejectsRequest() {
+    void batchStatus_statusOnly_updatesAllMappingsAndSyncsOnce() {
         when(cronjobService.getEntity(1L)).thenReturn(cronjob(1L));
         when(repository.findByCronjobId(1L)).thenReturn(Arrays.asList(
-                mapping(100L, 1L, 10L, true),
+                mapping(100L, 1L, 10L, false),
                 mapping(101L, 1L, 11L, false)));
-        BatchChangeStatusRequest request =
-                batchRequest(false, item(100L, true));
-
-        ResponseStatusException exception = assertThrows(
-                ResponseStatusException.class,
-                () -> service.changeAllStatuses(1L, request));
-
-        assertEquals(HttpStatus.CONFLICT, exception.getStatus());
-        verify(repository, never()).updateStatusIfMatches(
-                anyLong(), anyBoolean(), anyBoolean());
-    }
-
-    @Test
-    void batchStatus_duplicateIds_returnsBadRequest() {
-        when(cronjobService.getEntity(1L)).thenReturn(cronjob(1L));
-        when(repository.findByCronjobId(1L)).thenReturn(
-                Collections.singletonList(mapping(100L, 1L, 10L, true)));
-        BatchChangeStatusRequest request = batchRequest(false,
-                item(100L, true), item(100L, true));
-
-        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
-                () -> service.changeAllStatuses(1L, request));
-
-        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
-        assertEquals("Duplicate mapping id", exception.getReason());
-    }
-
-    @Test
-    void batchStatus_staleExpectedStatus_returnsConflict() {
-        when(cronjobService.getEntity(1L)).thenReturn(cronjob(1L));
-        when(repository.findByCronjobId(1L)).thenReturn(
-                Collections.singletonList(mapping(100L, 1L, 10L, true)));
-
-        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
-                () -> service.changeAllStatuses(1L,
-                        batchRequest(false, item(100L, false))));
-
-        assertEquals(HttpStatus.CONFLICT, exception.getStatus());
-        verify(repository, never()).updateStatusIfMatches(anyLong(), anyBoolean(), anyBoolean());
-    }
-
-    @Test
-    void batchStatus_concurrentUpdateReturnsZero_returnsConflict() {
-        when(cronjobService.getEntity(1L)).thenReturn(cronjob(1L));
-        when(repository.findByCronjobId(1L)).thenReturn(
-                Collections.singletonList(mapping(100L, 1L, 10L, true)));
-        when(repository.updateStatusIfMatches(100L, true, false)).thenReturn(0);
-
-        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
-                () -> service.changeAllStatuses(1L,
-                        batchRequest(false, item(100L, true))));
-
-        assertEquals(HttpStatus.CONFLICT, exception.getStatus());
-        verify(repository, never()).flush();
-    }
-
-    @Test
-    void batchStatus_completeSnapshot_updatesAllAndSyncsOnce() {
-        CronjobExecution first = mapping(100L, 1L, 10L, true);
-        CronjobExecution second = mapping(101L, 1L, 11L, false);
-        CronjobExecution firstAfter = mapping(100L, 1L, 10L, false);
-        CronjobExecution secondAfter = mapping(101L, 1L, 11L, false);
-        when(cronjobService.getEntity(1L)).thenReturn(cronjob(1L));
-        when(repository.findByCronjobId(1L))
-                .thenReturn(
-                        Arrays.asList(first, second),
-                        Arrays.asList(firstAfter, secondAfter));
-        when(repository.updateStatusIfMatches(anyLong(), anyBoolean(), eq(false)))
-                .thenReturn(1);
-        BatchChangeStatusRequest request = batchRequest(
-                false, item(100L, true), item(101L, false));
 
         java.util.List<CronjobExecutionResponse> responses =
-                service.changeAllStatuses(1L, request);
+                service.changeAllStatuses(1L, batchRequest(false));
 
         assertEquals(2, responses.size());
         assertTrue(responses.stream().noneMatch(CronjobExecutionResponse::getStatus));
-        verify(repository, times(2)).updateStatusIfMatches(
-                anyLong(), anyBoolean(), eq(false));
+        org.mockito.InOrder order = inOrder(repository);
+        order.verify(repository).updateStatusByCronjobId(1L, false);
+        order.verify(repository).findByCronjobId(1L);
+        verify(repository, never()).updateStatusIfMatches(anyLong(), anyBoolean(), anyBoolean());
         verify(schedulerService).scheduleIfNecessary(1L);
+    }
+
+    @Test
+    void batchStatus_enableAll_updatesByCronjobId() {
+        when(cronjobService.getEntity(2L)).thenReturn(cronjob(2L));
+        when(repository.findByCronjobId(2L)).thenReturn(
+                Collections.singletonList(mapping(102L, 2L, 12L, true)));
+
+        java.util.List<CronjobExecutionResponse> responses =
+                service.changeAllStatuses(2L, batchRequest(true));
+
+        assertTrue(responses.get(0).getStatus());
+        verify(repository).updateStatusByCronjobId(2L, true);
+        verify(schedulerService).scheduleIfNecessary(2L);
+    }
+
+    @Test
+    void batchStatus_emptyCronjob_succeedsWithEmptyList() {
+        when(cronjobService.getEntity(1L)).thenReturn(cronjob(1L));
+        when(repository.findByCronjobId(1L)).thenReturn(Collections.emptyList());
+
+        assertTrue(service.changeAllStatuses(1L, batchRequest(false)).isEmpty());
+
+        verify(repository).updateStatusByCronjobId(1L, false);
+        verify(schedulerService).scheduleIfNecessary(1L);
+    }
+
+    @Test
+    void batchStatus_missingCronjob_doesNotUpdateMappings() {
+        when(cronjobService.getEntity(1L)).thenThrow(
+                new ResponseStatusException(HttpStatus.NOT_FOUND, "Cronjob not found"));
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> service.changeAllStatuses(1L, batchRequest(false)));
+
+        assertEquals(HttpStatus.NOT_FOUND, exception.getStatus());
+        verifyNoInteractions(repository, schedulerService);
     }
 
     private CronjobExecutionRequest request(
@@ -367,19 +335,10 @@ class CronjobExecutionServiceTest {
         return request;
     }
 
-    private BatchChangeStatusRequest batchRequest(
-            boolean status, BatchStatusItem... items) {
+    private BatchChangeStatusRequest batchRequest(boolean status) {
         BatchChangeStatusRequest request = new BatchChangeStatusRequest();
         request.setStatus(status);
-        request.setItems(Arrays.asList(items));
         return request;
-    }
-
-    private BatchStatusItem item(Long id, boolean expectedStatus) {
-        BatchStatusItem item = new BatchStatusItem();
-        item.setId(id);
-        item.setExpectedStatus(expectedStatus);
-        return item;
     }
 
     private Cronjob cronjob(Long id) {

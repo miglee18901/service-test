@@ -129,24 +129,14 @@ Changing `cronValue` cancels the old scheduled task and registers it again with 
 
 ### Change all mapping statuses
 
-The client sends every mapping ID displayed on the page together with its expected current status. If another session has changed a status, the request returns a conflict and the client should reload the page.
+The client sends only the target status. The server updates all mappings belonging to the cron job, including mappings outside the current page. The operation overwrites their current statuses and returns the mapping list. Reload the current page after success.
 
 ```http
 PATCH /api/cronjobs/1/executions/status
 Content-Type: application/json
 
 {
-  "status": true,
-  "items": [
-    {
-      "id": 10,
-      "expectedStatus": false
-    },
-    {
-      "id": 11,
-      "expectedStatus": false
-    }
-  ]
+  "status": true
 }
 ```
 

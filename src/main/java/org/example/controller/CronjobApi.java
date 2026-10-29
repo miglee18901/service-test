@@ -79,7 +79,7 @@ public interface CronjobApi {
             produces = {"application/json;charset=utf-8"})
     BaseResponse delete(@PathVariable Long id);
 
-    @ApiOperation(value = "Change statuses of cronjob executions", notes = "Updates statuses for multiple execution mappings belonging to a cronjob.", response = CronjobExecutionResponse.class, responseContainer = "List", tags = {"Cronjob"})
+    @ApiOperation(value = "Change statuses of cronjob executions", notes = "Updates all execution mappings belonging to a cronjob, independently of pagination. Only the target status is required.", response = CronjobExecutionResponse.class, responseContainer = "List", tags = {"Cronjob"})
     @ApiResponses({
             @ApiResponse(code = 200, message = "Statuses updated successfully", response = CronjobExecutionResponse.class),
             @ApiResponse(code = 400, message = "Invalid request", response = BaseResponse.class),

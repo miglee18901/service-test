@@ -161,29 +161,16 @@ Path:
 
 Body:
 {
-  "items": [
-    {
-      "id": 100,
-      "expectedStatus": true
-    },
-    {
-      "id": 101,
-      "expectedStatus": false
-    }
-  ],
   "status": false
 }
 
 Ý nghĩa:
-- items bắt buộc, không được rỗng; mỗi item phải có id và expectedStatus.
-- Không được lặp id trong items; vi phạm trả 400.
 - status bắt buộc, không được null.
-- items phải chứa đầy đủ tất cả mapping hiện tại của cronjob.
-- id là ID cronjob-execution.
-- expectedStatus là trạng thái FE đang hiển thị.
-- status là trạng thái mới áp dụng cho toàn bộ items.
-- Nếu DB khác expectedStatus hoặc danh sách đã thay đổi, API trả 409.
-- Khi nhận 409, FE cần tải lại dữ liệu trước khi thử lại.
+- Backend cập nhật toàn bộ mapping thuộc cronjobId, kể cả mapping ngoài trang FE đang hiển thị.
+- FE không cần gửi items, ID mapping hay expectedStatus.
+- Trạng thái hiện tại của các mapping được ghi đè bằng status mới.
+- Cronjob không tồn tại trả 404; cronjob chưa có mapping trả thành công với danh sách rỗng.
+- Sau khi thành công, FE tải lại trang hiện tại để đồng bộ dữ liệu.
 
 Success: HTTP 200, data là danh sách CronjobExecutionResponse.
 
