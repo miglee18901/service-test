@@ -284,15 +284,15 @@ Path:
 
 Body:
 {
-  "expectedStatus": true,
-  "status": false
+  "status": true,
+  "expectedStatus": false
 }
 
 Ý nghĩa:
 - expectedStatus và status đều bắt buộc, không được null.
-- expectedStatus là trạng thái FE đang hiển thị.
-- status là trạng thái mới.
-- Nếu DB không còn giống expectedStatus, API trả 409.
+- status là trạng thái hiện tại FE đang hiển thị.
+- expectedStatus là trạng thái mới mong muốn.
+- Nếu trạng thái trong DB không còn giống status trong request, API trả 409.
 - Khi nhận 409, FE cần tải lại dữ liệu trước khi thử lại.
 
 Success: HTTP 200, data là CronjobExecutionResponse.

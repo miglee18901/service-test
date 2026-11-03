@@ -230,7 +230,7 @@ class CronjobExecutionServiceTest {
     }
 
     @Test
-    void changeStatus_matchingExpectedStatus_updatesAndSyncsScheduler() {
+    void changeStatus_matchingCurrentStatus_updatesToExpectedStatusAndSyncsScheduler() {
         CronjobExecution before = mapping(100L, 1L, 10L, true);
         CronjobExecution after = mapping(100L, 1L, 10L, false);
         when(repository.findById(100L))
@@ -328,7 +328,7 @@ class CronjobExecutionServiceTest {
     }
 
     private ChangeStatusRequest statusRequest(
-            boolean expectedStatus, boolean status) {
+            boolean status, boolean expectedStatus) {
         ChangeStatusRequest request = new ChangeStatusRequest();
         request.setExpectedStatus(expectedStatus);
         request.setStatus(status);

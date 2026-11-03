@@ -22,6 +22,7 @@ import java.util.Collections;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.mock;
@@ -112,8 +113,8 @@ class CronjobExecutionControllerTest {
     @Test
     void changeStatus_mappingIdInPath_passesIdToService() throws Exception {
         ChangeStatusRequest request = new ChangeStatusRequest();
-        request.setExpectedStatus(true);
-        request.setStatus(false);
+        request.setExpectedStatus(false);
+        request.setStatus(true);
         when(service.changeStatus(eq(15L), any())).thenReturn(response(false));
 
         mockMvc().perform(patch("/cronjob-executions/{id}/status", 15L)
@@ -122,7 +123,9 @@ class CronjobExecutionControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.status").value(false));
 
-        verify(service).changeStatus(eq(15L), any());
+        verify(service).changeStatus(eq(15L), argThat(actual ->
+                Boolean.TRUE.equals(actual.getStatus())
+                        && Boolean.FALSE.equals(actual.getExpectedStatus())));
     }
 
     @Test

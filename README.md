@@ -190,10 +190,14 @@ PATCH /api/cronjob-executions/10/status
 Content-Type: application/json
 
 {
-  "expectedStatus": true,
-  "status": false
+  "status": true,
+  "expectedStatus": false
 }
 ```
+
+Trong PATCH status, `status` là trạng thái hiện tại FE đang hiển thị;
+`expectedStatus` là trạng thái mới mong muốn. Nếu trạng thái DB khác
+`status` trong request, API trả 409 và FE cần tải lại dữ liệu.
 
 ## Execution API
 

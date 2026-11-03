@@ -97,7 +97,7 @@ public class CronjobExecutionService {
     public CronjobExecutionResponse changeStatus(Long id, ChangeStatusRequest request) {
         CronjobExecution mapping = getEntity(id);
         Long cronjobId = mapping.getCronjob().getId();
-        int updated = repository.updateStatusIfMatches(id, request.getExpectedStatus(), request.getStatus());
+        int updated = repository.updateStatusIfMatches(id, request.getStatus(), request.getExpectedStatus());
         if (updated == 0) {
             throw conflict(STALE_MESSAGE);
         }

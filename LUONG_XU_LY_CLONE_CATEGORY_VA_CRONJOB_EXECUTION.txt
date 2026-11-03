@@ -262,17 +262,18 @@ Sửa mapping:
   tại mục 3.6 chỉ áp dụng cho API thay đổi status chuyên biệt.
 
 3.6. Bật/tắt một mapping và chống dữ liệu cũ
-Request: {"expectedStatus":false,"status":true}
-expectedStatus là trạng thái mà người dùng đã đọc trước khi thao tác.
+Request: {"status":false,"expectedStatus":true}
+status là trạng thái mà người dùng đã đọc trước khi thao tác.
+expectedStatus là trạng thái mới mong muốn.
 Bước 01 - Tìm mapping; thiếu thì 404 "Cronjob execution not found".
 Bước 02 - Chạy cập nhật có điều kiện ID và status hiện tại phải bằng
-          expectedStatus. status mới lấy từ request.
+          status trong request. Gán trạng thái mới bằng expectedStatus.
 Bước 03 - Không cập nhật được bản ghi nào: trả lỗi 409
           "Data has been changed by another session. Please reload the page."
 Bước 04 - Thành công: sau commit đánh giá lại lịch cronjob.
 Bước 05 - Đọc lại mapping và trả trạng thái mới.
 API này không kiểm tra lại execution element hoặc state của execution.
-expectedStatus chỉ phát hiện trạng thái hiện tại khác giá trị kỳ vọng,
+Cơ chế so sánh với status trong request chỉ phát hiện trạng thái hiện tại khác giá trị đã đọc,
 không phải cơ chế version phát hiện mọi thay đổi đã từng xảy ra.
 
 3.7. Bật/tắt toàn bộ mapping của một cronjob
@@ -415,7 +416,7 @@ TC-CR-03. Tạo cronjob chưa mapping: chưa có lịch; mapping true đầu ti�
           tạo lịch, mapping false không làm lịch tự chạy.
 TC-CR-04. Execution thiếu element hoặc đã có mapping: từ chối liên kết.
 TC-CR-05. Tắt mapping true cuối cùng: hủy lịch; bật lại: đăng ký lịch.
-TC-CR-06. PATCH status với expectedStatus cũ: 409, không ghi đè trạng thái.
+TC-CR-06. PATCH status với status đã lỗi thời: 409, không ghi đè trạng thái.
 TC-CR-07. Batch chỉ gửi status: cập nhật toàn bộ mapping theo cronjobId,
           kể cả ngoài trang hiện tại; cronjob chưa có mapping vẫn thành công.
 TC-CR-08. Sửa cronValue: đăng ký lại sau commit; sửa tên: giữ lịch.

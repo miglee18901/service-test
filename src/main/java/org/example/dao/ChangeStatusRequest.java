@@ -8,9 +8,9 @@ import javax.validation.constraints.NotNull;
 @Getter
 @Setter
 public class ChangeStatusRequest {
-    @NotNull(message = "Expected status is required")
+    @NotNull(message = "Desired status is required")
     private Boolean expectedStatus;
 
-    @NotNull(message = "New status is required")
+    @NotNull(message = "Current status is required")
     private Boolean status;
 }
