@@ -212,6 +212,71 @@ The start endpoint invokes the same service method used by scheduled executions.
 
 The execute-vim endpoint returns `execute-vim.options` from application configuration. For example: `execute-vim.options=vim-a,vim-b`. If unset, it returns an empty list.
 
+## Mock OCS batch execution
+
+`POST /api/executionInfo/execute-batch` runs the synchronous batch flow reconstructed
+from the supplied screenshots. The endpoint does not require an execution database
+record. Send `X-User: operator` and `Content-Type: application/json`:
+
+```json
+{
+  "server": { "id": 1, "name": "Mock OCS", "host": "http://mock-ocs", "tps": 100 },
+  "command": {
+    "id": 10,
+    "name": "Mock command",
+    "code": "<request><path>/mock-command</path><method>POST</method><body>${msisdn}</body></request>",
+    "successCode": "SUCCESS",
+    "listParameter": [{ "name": "msisdn" }]
+  },
+  "authServer": { "tokenAvailable": true },
+  "numOfThread": 2,
+  "reason": "Mock batch",
+  "listBatchParam": [
+    { "paramMap": { "msisdn": "10001" }, "mockSuccess": true },
+    { "paramMap": { "msisdn": "10002" }, "mockSuccess": false }
+  ]
+}
+```
+
+The header sets `request.username`. `BatchExecutionService` is the HTTP adapter;
+the screenshot method is `OcsToolBatchExecutionService.executeBatch(request)`.
+It calls `ThreadExecuteManager.getInstance().addThreads`, which submits
+`new MultiRestCallable(threadName, executeObj)` through an `ExecutorCompletionService`.
+
+`ThreadExecuteManager` uses a private constructor, a synchronized `getInstance()`,
+a fixed pool of 100 threads, and the four maps from the screenshots.
+`addThreads` is synchronized and waits for all submitted tasks before returning.
+Set `app.execute-config.max-thread` (default 100) to change the service's
+partition calculation, and `app.execute-config.timeout-execute-milli` (default 300000)
+for the connection/read timeout values stored in `ExecuteObj`.
+The worker uses the screenshot TPS calculation with `ReentrantLock`,
+`Condition.awaitNanos`, and shared `TpsEntity.lastCheckTime/aCountSent` per batch.
+`server.tps` falls back to 100 when null or non-positive.
+
+`MultiRestCallable` clones command parameters, substitutes `${name}` in the XML,
+builds `CommandRequest`, prepares HTTP headers, and calls `executeSingle`.
+`ConnectionManager.sentHttp` always returns a mock response and never sends HTTP.
+Set `tokenAvailable: false` for token failure; `mockHttpStatus: 401` for an
+unauthorized command; `mockException: true` for a simulated transport exception.
+`mockSuccess` defaults to true and `mockHttpStatus` defaults to 200.
+
+The response contains `retn`, `description`, `serverName`, `host`,
+`startTime`, `endTime`, `processTime`, `totalSent`, `totalSuccess`,
+`totalError`, `listSuccessResponse`, `listFailResponse`, and `responseLogFile`.
+Success and partial failure both return `retn: "0"` (HTTP 200);
+token failure returns `retn: "-2"` (HTTP 401); batch failure returns
+`retn: "-1"` (HTTP 500). The numeric constant values are local mock definitions:
+their original values were not provided in the screenshots.
+Invalid requests return HTTP 400 and a user detected as already running returns HTTP 409.
+
+An empty/null parameter map or a different parameter count is skipped, as in the
+screenshots. The example returns `totalSent: 2`, `totalSuccess: 1`,
+`totalError: 1`, with `description: BATCH_EXECUTE_NOT_SUCCESS_ALL`.
+Logs are written on the application server under `target/batch-logs`;
+configure `app.batch-execution.log-directory` to change the location.
+
+See [screenshot correspondence and reconstruction limits](docs/batch-screenshot-parity.md).
+
 ## Scheduler behavior
 
 - A cron job is registered only when it has at least one enabled `cronjob_execution` mapping.

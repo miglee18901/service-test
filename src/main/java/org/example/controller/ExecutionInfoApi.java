@@ -4,6 +4,8 @@ import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 import org.example.model.ExecutionInfo;
+import org.example.dao.BatchExecutionRequest;
+import org.example.dao.BatchExecutionResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
@@ -11,10 +13,19 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestBody;
 
 import java.util.List;
 
 public interface ExecutionInfoApi {
+    @ApiOperation(value = "Execute a mock OCS batch", response = BatchExecutionResponse.class,
+            tags = {"Execution Info"})
+    @RequestMapping(value = "/executionInfo/execute-batch", method = RequestMethod.POST,
+            consumes = "application/json", produces = "application/json;charset=utf-8")
+    ResponseEntity<BatchExecutionResponse> executeBatch(
+            @RequestBody BatchExecutionRequest request,
+            @RequestHeader(value = "X-User", defaultValue = "anonymous") String username);
+
     @ApiOperation(value = "Get execution information", notes = "Returns a pageable list of execution information.",
             response = ExecutionInfo.class, responseContainer = "List", tags = {"Execution Info"})
     @ApiResponse(code = 200, message = "Success", response = ExecutionInfo.class)

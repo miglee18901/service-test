@@ -89,7 +89,8 @@ class ControllerCoverageTest {
     void executionInfoController_validRequests_delegatesRequests() {
         ExecutionInfoRepository repository = mock(ExecutionInfoRepository.class);
         ExecutionInfoService startService = mock(ExecutionInfoService.class);
-        ExecutionInfoController controller = new ExecutionInfoController(repository, startService);
+        ExecutionInfoController controller = new ExecutionInfoController(repository, startService,
+                mock(org.example.service.BatchExecutionService.class));
         Page<ExecutionInfo> page = Page.empty();
         BaseResponse started = new BaseResponse(200, "ok", Collections.emptyMap());
         when(repository.findAll(any(PageRequest.class))).thenReturn(page);

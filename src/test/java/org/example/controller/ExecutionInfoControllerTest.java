@@ -17,11 +17,27 @@ import static org.mockito.Mockito.mock;
 
 class ExecutionInfoControllerTest {
     @Test
+    void executeBatch_delegatesAndUsesResponseHttpStatus() throws Exception {
+        org.example.service.BatchExecutionService batch = mock(org.example.service.BatchExecutionService.class);
+        org.example.dao.BatchExecutionResponse response = new org.example.dao.BatchExecutionResponse();
+        response.setStatus(401);
+        response.setRetn("NOT_AUTHEN");
+        when(batch.executeBatch(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.eq("operator")))
+                .thenReturn(response);
+        MockMvc mvc = MockMvcBuilders.standaloneSetup(new ExecutionInfoController(
+                mock(ExecutionInfoRepository.class), mock(ExecutionInfoService.class), batch)).build();
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/executionInfo/execute-batch")
+                        .header("X-User", "operator").contentType("application/json").content("{}"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.retn").value("NOT_AUTHEN"));
+    }
+
+    @Test
     void listExecuteVim_configuredOptions_returnsOptions() throws Exception {
         ExecutionInfoService service = mock(ExecutionInfoService.class);
         when(service.listExecutionVim()).thenReturn(new BaseResponse(200, "Get list execute vim success", Arrays.asList("vim-a", "vim-b")));
         ExecutionInfoController controller = new ExecutionInfoController(
-                mock(ExecutionInfoRepository.class), service);
+                mock(ExecutionInfoRepository.class), service, mock(org.example.service.BatchExecutionService.class));
         MockMvc mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
 
         mockMvc.perform(get("/executionInfo/execute-vim")
