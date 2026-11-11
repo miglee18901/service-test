@@ -16,6 +16,9 @@ public class BatchExecutionRequest {
     @NotNull @Valid
     private AuthServer authServer;
     private String username;
+    @NotBlank
+    @Size(max = 100)
+    private String runId;
     private String reason;
     @Min(1) @Max(100)
     private int numOfThread = 1;

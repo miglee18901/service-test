@@ -381,6 +381,43 @@ Success: HTTP 200
 data là danh sách chuỗi từ cấu hình execute-vim.options; giá trị ví dụ theo profile dev.
 
 
+3.4. Thực thi batch (execute-batch)
+
+POST /api/executionInfo/execute-batch
+
+Header:
+- Content-Type: application/json
+- X-User: username thực thi (mặc định anonymous)
+
+Body: BatchExecutionRequest (server, command, authServer, listBatchParam, numOfThread, reason)
+
+Hành vi:
+- Thực thi batch đồng bộ qua ThreadPool, tự động cập nhật tiến độ phần trăm (%) vào In-Memory Progress Tracker theo executeKey = username_commandId.
+- Trả về BatchExecutionResponse khi hoàn thành toàn bộ batch.
+
+
+3.5. Lấy tỷ lệ phần trăm tiến độ batch (Loading Progress Polling)
+
+GET /api/executionInfo/execute-batch/progress
+
+Query Parameters:
+- key: String (không bắt buộc nếu truyền commandId): executeKey (username_commandId)
+- commandId: Long (không bắt buộc nếu truyền key): ID lệnh, kết hợp cùng X-User để xác định executeKey
+
+Header:
+- X-User: username (mặc định anonymous, dùng khi resolve key theo commandId)
+
+Success: HTTP 200 OK
+{
+  "executeKey": "operator_10",
+  "percent": 45.0,             // Tỷ lệ % hoàn thành (0.0 - 100.0)
+  "status": "RUNNING",         // RUNNING, COMPLETED, NOT_FOUND
+  "result": null               // null khi đang chạy; chứa BatchExecutionResponse khi status = COMPLETED (100%)
+}
+
+Trường hợp không tìm thấy key trong bộ nhớ: trả về status: "NOT_FOUND", percent: 0.0.
+
+
 4. CATEGORY
 ===========
 
@@ -483,6 +520,8 @@ PATCH  /api/cronjob-executions/{id}/status
 GET    /api/execution-info
 POST   /api/execution-info/{id}/start
 GET    /api/executionInfo/execute-vim
+POST   /api/executionInfo/execute-batch
+GET    /api/executionInfo/execute-batch/progress
 
 POST   /api/category/{id}/clone
 

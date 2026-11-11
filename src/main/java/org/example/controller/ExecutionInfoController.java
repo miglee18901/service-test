@@ -8,6 +8,7 @@ import org.example.service.ExecutionInfoService;
 import org.example.service.BatchExecutionService;
 import org.example.dao.BatchExecutionRequest;
 import org.example.dao.BatchExecutionResponse;
+import org.example.dao.BatchProgressResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
@@ -33,6 +34,20 @@ public class ExecutionInfoController extends BaseResponseApi implements Executio
     public ResponseEntity<BatchExecutionResponse> executeBatch(BatchExecutionRequest request, String username) {
         BatchExecutionResponse response = batchExecutionService.executeBatch(request, username);
         return ResponseEntity.status(response.getStatus()).body(response);
+    }
+
+    @Override
+    public ResponseEntity<BatchProgressResponse> getBatchProgress(String runId, String executeKey, Long commandId, String username) {
+        String key = runId != null && !runId.trim().isEmpty() ? runId : executeKey;
+        if ((key == null || key.trim().isEmpty()) && commandId != null) {
+            key = (username != null ? username : "anonymous") + "_" + commandId;
+        }
+        BatchProgressResponse progress = batchExecutionService.getProgress(key);
+        return ResponseEntity.ok(progress);
+    }
+
+    public ResponseEntity<BatchProgressResponse> getBatchProgress(String executeKey, Long commandId, String username) {
+        return getBatchProgress(null, executeKey, commandId, username);
     }
 
     @Override

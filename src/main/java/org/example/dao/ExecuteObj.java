@@ -8,6 +8,7 @@ import java.util.List;
 @Getter @Setter
 public class ExecuteObj {
     private String executeKey;
+    private String progressRunId;
     private long startTime;
     private long endTime;
     private String finishStatus;

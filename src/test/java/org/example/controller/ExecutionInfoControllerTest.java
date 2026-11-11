@@ -48,4 +48,41 @@ class ExecutionInfoControllerTest {
                 .andExpect(jsonPath("$.data[0]").value("vim-a"))
                 .andExpect(jsonPath("$.data[1]").value("vim-b"));
     }
+
+    @Test
+    void getBatchProgress_byKey_returnsProgress() throws Exception {
+        org.example.service.BatchExecutionService batch = mock(org.example.service.BatchExecutionService.class);
+        org.example.dao.BatchProgressResponse progress = new org.example.dao.BatchProgressResponse("operator_10", 50.0, "RUNNING");
+        when(batch.getProgress("operator_10")).thenReturn(progress);
+
+        MockMvc mvc = MockMvcBuilders.standaloneSetup(new ExecutionInfoController(
+                mock(ExecutionInfoRepository.class), mock(ExecutionInfoService.class), batch)).build();
+
+        mvc.perform(get("/executionInfo/execute-batch/progress")
+                        .param("key", "operator_10")
+                        .contentType("application/json;charset=utf-8"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.executeKey").value("operator_10"))
+                .andExpect(jsonPath("$.status").value("RUNNING"))
+                .andExpect(jsonPath("$.percent").value(50.0));
+    }
+
+    @Test
+    void getBatchProgress_byCommandIdAndHeader_resolvesKey() throws Exception {
+        org.example.service.BatchExecutionService batch = mock(org.example.service.BatchExecutionService.class);
+        org.example.dao.BatchProgressResponse progress = new org.example.dao.BatchProgressResponse("custom_user_20", 100.0, "COMPLETED");
+        when(batch.getProgress("custom_user_20")).thenReturn(progress);
+
+        MockMvc mvc = MockMvcBuilders.standaloneSetup(new ExecutionInfoController(
+                mock(ExecutionInfoRepository.class), mock(ExecutionInfoService.class), batch)).build();
+
+        mvc.perform(get("/executionInfo/execute-batch/progress")
+                        .param("commandId", "20")
+                        .header("X-User", "custom_user")
+                        .contentType("application/json;charset=utf-8"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.executeKey").value("custom_user_20"))
+                .andExpect(jsonPath("$.status").value("COMPLETED"))
+                .andExpect(jsonPath("$.percent").value(100.0));
+    }
 }

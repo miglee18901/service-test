@@ -17,6 +17,7 @@ public class ThreadExecuteManager {
     private final Map<String, AtomicInteger> mapExecuteKey = new ConcurrentHashMap<>();
     private final Map<String, BatchExecutionResponse> mapExecuteKeyToResponse = new ConcurrentHashMap<>();
     private final Map<String, List<ExecuteObj>> mapUserToListExecute = new ConcurrentHashMap<>();
+    private final Map<String, BatchProgressTracker> mapExecuteKeyToTracker = new ConcurrentHashMap<>();
     private final ExecutorService executorService;
 
     private ThreadExecuteManager() {
@@ -96,6 +97,46 @@ public class ThreadExecuteManager {
 
     public Map<String, BatchExecutionResponse> getMapExecuteKeyToResponse() { return mapExecuteKeyToResponse; }
 
+    public Map<String, BatchProgressTracker> getMapExecuteKeyToTracker() { return mapExecuteKeyToTracker; }
+
+    public void registerTracker(String runId, BatchProgressTracker tracker) {
+        if (runId != null && tracker != null) {
+            cleanExpiredTrackers();
+            mapExecuteKeyToTracker.put(runId.trim(), tracker);
+        }
+    }
+
+    public BatchProgressTracker getTracker(String runId) {
+        if (runId == null) return null;
+        return mapExecuteKeyToTracker.get(runId.trim());
+    }
+
+    public void incrementProgress(String runId) {
+        if (runId != null) {
+            BatchProgressTracker tracker = mapExecuteKeyToTracker.get(runId.trim());
+            if (tracker != null) {
+                tracker.increment();
+            }
+        }
+    }
+
+    public void removeTracker(String runId) {
+        if (runId != null) {
+            mapExecuteKeyToTracker.remove(runId.trim());
+        }
+    }
+
+    private void cleanExpiredTrackers() {
+        long now = System.currentTimeMillis();
+        long maxAgeMs = 30 * 60 * 1000L;
+        for (Map.Entry<String, BatchProgressTracker> entry : mapExecuteKeyToTracker.entrySet()) {
+            BatchProgressTracker t = entry.getValue();
+            if (now - t.getCreatedAt() > maxAgeMs) {
+                mapExecuteKeyToTracker.remove(entry.getKey());
+            }
+        }
+    }
+
     // Lifecycle helper: the screenshots do not show application shutdown.
     public static synchronized void shutdown() {
         if (instance != null) {
@@ -104,6 +145,7 @@ public class ThreadExecuteManager {
             instance.mapExecuteKey.clear();
             instance.mapExecuteKeyToResponse.clear();
             instance.mapUserToListExecute.clear();
+            instance.mapExecuteKeyToTracker.clear();
             instance = null;
         }
     }

@@ -46,8 +46,10 @@ public class OcsToolBatchExecutionService {
 
         OcsVcServerDTO server = request.getServer();
         String executeKey = request.getUsername() + "_" + request.getCommandId();
+        String runId = request.getRunId().trim();
 
         BatchExecutionResponse response = new BatchExecutionResponse();
+        response.setRunId(runId);
         response.setServerName(server.getName());
         response.setHost(server.getHost());
         if (!checkToken(request.getAuthServer())) {
@@ -55,6 +57,11 @@ public class OcsToolBatchExecutionService {
             response.setDescription(ServiceConstants.ExecuteDescription.GET_TOKEN_FAILED);
             return response;
         }
+
+        List<BatchParameter> batchItems = new ArrayList<>(request.getListBatchParam());
+        BatchProgressTracker tracker = new BatchProgressTracker(runId, batchItems.size());
+        ThreadExecuteManager.getInstance().registerTracker(runId, tracker);
+
         try {
             ThreadExecuteManager.getInstance().getMapExecuteKeyToResponse().put(executeKey.trim(), response);
 
@@ -98,6 +105,7 @@ public class OcsToolBatchExecutionService {
                 long currentTime = System.currentTimeMillis();
                 ExecuteObj executeObj = new ExecuteObj();
                 executeObj.setExecuteKey(executeKey);
+                executeObj.setProgressRunId(runId);
                 executeObj.setStartTime(currentTime);
                 executeObj.setFinishStatus(ServiceConstants.BatchFinishStatus.RUNNING);
                 executeObj.setDescription(des + "\r\n Number of Execution Command: " + listParamSet.size());
@@ -147,10 +155,23 @@ public class OcsToolBatchExecutionService {
             response.setRetn(HttpRequestConstants.ErrorCode.Fail);
             response.setDescription(e.getMessage());
         } finally {
+            tracker.complete(response);
             ThreadExecuteManager.getInstance().getMapExecuteKeyToResponse().remove(executeKey);
             ThreadExecuteManager.getInstance().getMapServerParamSet().remove(server.getId());
         }
         return response;
+    }
+
+    public BatchProgressResponse getProgress(String executeKey) {
+        BatchProgressTracker tracker = ThreadExecuteManager.getInstance().getTracker(executeKey);
+        if (tracker != null) {
+            BatchProgressResponse progress = tracker.toProgressResponse();
+            if (tracker.isCompleted()) {
+                ThreadExecuteManager.getInstance().removeTracker(executeKey);
+            }
+            return progress;
+        }
+        return new BatchProgressResponse(executeKey, 0.0, "NOT_FOUND");
     }
 
     // Supporting helpers are not supplied in the screenshots.
@@ -158,6 +179,9 @@ public class OcsToolBatchExecutionService {
         if (request == null) throw new IllegalArgumentException("Batch request is required");
         if (request.getUsername() == null || request.getUsername().trim().isEmpty()) {
             throw new IllegalArgumentException("Username is required");
+        }
+        if (request.getRunId() == null || request.getRunId().trim().isEmpty()) {
+            throw new IllegalArgumentException("Run ID is required");
         }
         Set<ConstraintViolation<BatchExecutionRequest>> violations = validator.validate(request);
         if (!violations.isEmpty()) {

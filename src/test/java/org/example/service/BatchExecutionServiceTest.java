@@ -200,6 +200,32 @@ class BatchExecutionServiceTest {
         assertFalse(OcsToolUtil.checkResultCode("{\"code\":\"FAIL\"}", "SUCCESS"));
     }
 
+    @Test
+    void executeBatch_tracksProgressUntilCompleted() {
+        BatchExecutionRequest request = request(6);
+        BatchExecutionResponse response = service.executeBatch(request, "operator");
+        assertEquals(200, response.getStatus());
+
+        BatchProgressResponse progress = service.getProgress("operator_10");
+        assertNotNull(progress);
+        assertEquals("operator_10", progress.getExecuteKey());
+        assertEquals("COMPLETED", progress.getStatus());
+        assertEquals(100.0, progress.getPercent());
+        assertNotNull(progress.getResult());
+        assertEquals(6, progress.getResult().getTotalSent());
+        assertEquals(6, progress.getResult().getTotalSuccess());
+        assertTrackingCleared();
+    }
+
+    @Test
+    void getProgress_unknownKey_returnsNotFoundStatus() {
+        BatchProgressResponse progress = service.getProgress("non_existent_key");
+        assertNotNull(progress);
+        assertEquals("non_existent_key", progress.getExecuteKey());
+        assertEquals("NOT_FOUND", progress.getStatus());
+        assertEquals(0.0, progress.getPercent());
+    }
+
     private void assertTrackingCleared() {
         ThreadExecuteManager manager = ThreadExecuteManager.getInstance();
         assertTrue(manager.getMapExecuteKeyToResponse().isEmpty());

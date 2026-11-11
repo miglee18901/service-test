@@ -6,6 +6,7 @@ import io.swagger.annotations.ApiResponses;
 import org.example.model.ExecutionInfo;
 import org.example.dao.BatchExecutionRequest;
 import org.example.dao.BatchExecutionResponse;
+import org.example.dao.BatchProgressResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
 
@@ -24,6 +26,16 @@ public interface ExecutionInfoApi {
             consumes = "application/json", produces = "application/json;charset=utf-8")
     ResponseEntity<BatchExecutionResponse> executeBatch(
             @RequestBody BatchExecutionRequest request,
+            @RequestHeader(value = "X-User", defaultValue = "anonymous") String username);
+
+    @ApiOperation(value = "Get batch execution progress", notes = "Returns loading percentage and progress of a batch execution.",
+            response = BatchProgressResponse.class, tags = {"Execution Info"})
+    @RequestMapping(value = "/executionInfo/execute-batch/progress", method = RequestMethod.GET,
+            produces = "application/json;charset=utf-8")
+    ResponseEntity<BatchProgressResponse> getBatchProgress(
+            @RequestParam(value = "runId", required = false) String runId,
+            @RequestParam(value = "key", required = false) String executeKey,
+            @RequestParam(value = "commandId", required = false) Long commandId,
             @RequestHeader(value = "X-User", defaultValue = "anonymous") String username);
 
     @ApiOperation(value = "Get execution information", notes = "Returns a pageable list of execution information.",

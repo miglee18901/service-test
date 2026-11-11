@@ -4,6 +4,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.example.constants.ServiceConstants;
 import org.example.dao.*;
+import org.example.service.ThreadExecuteManager;
 import org.example.utils.ConnectionManager;
 import org.example.utils.HttpClientUtil;
 import org.example.utils.OcsToolUtil;
@@ -136,6 +137,7 @@ public class MultiRestCallable implements Callable<ExecuteObj> {
                     }
                     this.executeObj.setTotalMsg(totalMsg);
                     this.executeObj.setTotalError(totalError);
+                    ThreadExecuteManager.getInstance().incrementProgress(this.executeObj.getProgressRunId());
                 }
                 paramSetIndex++;
                 logger.info("[{}] response of paramSetIndex {}: {}", threadName, paramSetIndex, response);

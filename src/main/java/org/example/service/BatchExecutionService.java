@@ -4,6 +4,7 @@ import org.example.constants.HttpRequestConstants;
 import org.example.constants.ServiceConstants;
 import org.example.dao.BatchExecutionRequest;
 import org.example.dao.BatchExecutionResponse;
+import org.example.dao.BatchProgressResponse;
 import org.springframework.stereotype.Service;
 
 /** HTTP adapter; the screenshot implementation lives in OcsToolBatchExecutionService. */
@@ -27,6 +28,10 @@ public class BatchExecutionService {
         } catch (IllegalStateException exception) {
             return failure(409, exception.getMessage());
         }
+    }
+
+    public BatchProgressResponse getProgress(String executeKey) {
+        return service.getProgress(executeKey);
     }
 
     private BatchExecutionResponse failure(int status, String message) {
