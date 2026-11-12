@@ -31,8 +31,8 @@ public class OcsToolBatchExecutionService {
     private String accessToken;
 
     public OcsToolBatchExecutionService(ApplicationProperties applicationProperties,
-            MockBatchExecutionClient client, Validator validator, ObjectMapper objectMapper,
-            @Value("${app.batch-execution.log-directory:target/batch-logs}") String logDirectory) {
+                                        MockBatchExecutionClient client, Validator validator, ObjectMapper objectMapper,
+                                        @Value("${app.batch-execution.log-directory:target/batch-logs}") String logDirectory) {
         this.applicationProperties = applicationProperties;
         this.client = client;
         this.validator = validator;
@@ -49,7 +49,6 @@ public class OcsToolBatchExecutionService {
         String runId = request.getRunId().trim();
 
         BatchExecutionResponse response = new BatchExecutionResponse();
-        response.setRunId(runId);
         response.setServerName(server.getName());
         response.setHost(server.getHost());
         if (!checkToken(request.getAuthServer())) {
@@ -59,8 +58,8 @@ public class OcsToolBatchExecutionService {
         }
 
         List<BatchParameter> batchItems = new ArrayList<>(request.getListBatchParam());
-        BatchProgressTracker tracker = new BatchProgressTracker(runId, batchItems.size());
-        ThreadExecuteManager.getInstance().registerTracker(runId, tracker);
+        BatchProgressTracker<BatchExecutionResponse> tracker = new BatchProgressTracker<>(batchItems.size());
+        ExecutionProgressManager.getInstance().register(runId, tracker);
 
         try {
             ThreadExecuteManager.getInstance().getMapExecuteKeyToResponse().put(executeKey.trim(), response);
@@ -162,16 +161,14 @@ public class OcsToolBatchExecutionService {
         return response;
     }
 
-    public BatchProgressResponse getProgress(String executeKey) {
-        BatchProgressTracker tracker = ThreadExecuteManager.getInstance().getTracker(executeKey);
+    public BatchProgressResponse<?> getProgress(String executeKey) {
+        BatchProgressTracker<?> tracker = ExecutionProgressManager.getInstance().get(executeKey);
         if (tracker != null) {
-            BatchProgressResponse progress = tracker.toProgressResponse();
-            if (tracker.isCompleted()) {
-                ThreadExecuteManager.getInstance().removeTracker(executeKey);
-            }
+            BatchProgressResponse<?> progress = tracker.toProgressResponse();
+            if (tracker.isCompleted()) ExecutionProgressManager.getInstance().remove(executeKey);
             return progress;
         }
-        return new BatchProgressResponse(executeKey, 0.0, "NOT_FOUND");
+        return new BatchProgressResponse(0.0, "NOT_FOUND");
     }
 
     // Supporting helpers are not supplied in the screenshots.

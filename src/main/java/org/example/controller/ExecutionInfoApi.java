@@ -7,6 +7,8 @@ import org.example.model.ExecutionInfo;
 import org.example.dao.BatchExecutionRequest;
 import org.example.dao.BatchExecutionResponse;
 import org.example.dao.BatchProgressResponse;
+import org.example.dao.SingleExecutionRequest;
+import org.example.dao.SingleExecutionResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
@@ -20,6 +22,22 @@ import org.springframework.web.bind.annotation.RequestParam;
 import java.util.List;
 
 public interface ExecutionInfoApi {
+    @ApiOperation(value = "Execute an OCS command", response = SingleExecutionResponse.class,
+            tags = {"Execution Info"})
+    @RequestMapping(value = "/executionInfo/execute-single", method = RequestMethod.POST,
+            consumes = "application/json", produces = "application/json;charset=utf-8")
+    ResponseEntity<SingleExecutionResponse> executeSingle(
+            @RequestBody SingleExecutionRequest request,
+            @RequestHeader(value = "X-User", defaultValue = "anonymous") String username);
+
+    @ApiOperation(value = "Get single execution progress", response = BatchProgressResponse.class,
+            tags = {"Execution Info"})
+    @RequestMapping(value = "/executionInfo/execute-single/progress", method = RequestMethod.GET,
+            produces = "application/json;charset=utf-8")
+    ResponseEntity<BatchProgressResponse<?>> getSingleProgress(
+            @RequestParam(value = "runId") String runId,
+            @RequestHeader(value = "X-User", defaultValue = "anonymous") String username);
+
     @ApiOperation(value = "Execute a mock OCS batch", response = BatchExecutionResponse.class,
             tags = {"Execution Info"})
     @RequestMapping(value = "/executionInfo/execute-batch", method = RequestMethod.POST,
@@ -32,7 +50,7 @@ public interface ExecutionInfoApi {
             response = BatchProgressResponse.class, tags = {"Execution Info"})
     @RequestMapping(value = "/executionInfo/execute-batch/progress", method = RequestMethod.GET,
             produces = "application/json;charset=utf-8")
-    ResponseEntity<BatchProgressResponse> getBatchProgress(
+    ResponseEntity<BatchProgressResponse<?>> getBatchProgress(
             @RequestParam(value = "runId", required = false) String runId,
             @RequestParam(value = "key", required = false) String executeKey,
             @RequestParam(value = "commandId", required = false) Long commandId,

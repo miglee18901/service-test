@@ -137,7 +137,7 @@ public class MultiRestCallable implements Callable<ExecuteObj> {
                     }
                     this.executeObj.setTotalMsg(totalMsg);
                     this.executeObj.setTotalError(totalError);
-                    ThreadExecuteManager.getInstance().incrementProgress(this.executeObj.getProgressRunId());
+                    org.example.service.ExecutionProgressManager.getInstance().increment(this.executeObj.getProgressRunId());
                 }
                 paramSetIndex++;
                 logger.info("[{}] response of paramSetIndex {}: {}", threadName, paramSetIndex, response);

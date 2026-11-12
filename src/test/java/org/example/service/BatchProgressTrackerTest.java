@@ -14,7 +14,7 @@ class BatchProgressTrackerTest {
 
     @Test
     void tracker_initialState_returnsZeroPercentAndRunning() {
-        BatchProgressTracker tracker = new BatchProgressTracker("admin_10", 100);
+        BatchProgressTracker tracker = new BatchProgressTracker(100);
         assertEquals("admin_10", tracker.getExecuteKey());
         assertEquals(100, tracker.getTotal());
         assertEquals(0, tracker.getProcessed());
@@ -28,7 +28,7 @@ class BatchProgressTrackerTest {
 
     @Test
     void tracker_increments_calculatesCorrectPercent() {
-        BatchProgressTracker tracker = new BatchProgressTracker("admin_10", 10);
+        BatchProgressTracker tracker = new BatchProgressTracker(10);
         tracker.increment();
         tracker.increment();
         tracker.increment();
@@ -42,7 +42,7 @@ class BatchProgressTrackerTest {
 
     @Test
     void tracker_complete_setsCompletedStatusAndHundredPercent() {
-        BatchProgressTracker tracker = new BatchProgressTracker("admin_10", 50);
+        BatchProgressTracker tracker = new BatchProgressTracker(50);
         tracker.increment();
         org.example.dao.BatchExecutionResponse mockResult = new org.example.dao.BatchExecutionResponse();
         mockResult.setTotalSent(50);
@@ -63,7 +63,7 @@ class BatchProgressTrackerTest {
         int incrementsPerThread = 500;
         int totalExpected = numThreads * incrementsPerThread;
 
-        BatchProgressTracker tracker = new BatchProgressTracker("load_test_key", totalExpected);
+        BatchProgressTracker tracker = new BatchProgressTracker(totalExpected);
         ExecutorService pool = Executors.newFixedThreadPool(numThreads);
         CountDownLatch startLatch = new CountDownLatch(1);
         CountDownLatch finishLatch = new CountDownLatch(numThreads);

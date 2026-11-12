@@ -11,9 +11,17 @@ import org.springframework.stereotype.Service;
 @Service
 public class BatchExecutionService {
     private final OcsToolBatchExecutionService service;
+    private final OcsToolSingleExecutionService singleExecutionService;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public BatchExecutionService(OcsToolBatchExecutionService service, OcsToolSingleExecutionService singleExecutionService) {
+        this.service = service;
+        this.singleExecutionService = singleExecutionService;
+    }
 
     public BatchExecutionService(OcsToolBatchExecutionService service) {
         this.service = service;
+        this.singleExecutionService = null;
     }
 
     public BatchExecutionResponse executeBatch(BatchExecutionRequest request, String username) {
@@ -30,8 +38,12 @@ public class BatchExecutionService {
         }
     }
 
-    public BatchProgressResponse getProgress(String executeKey) {
+    public BatchProgressResponse<?> getProgress(String executeKey) {
         return service.getProgress(executeKey);
+    }
+
+    public org.example.dao.SingleExecutionResponse executeSingle(org.example.dao.SingleExecutionRequest request, String username) {
+        return singleExecutionService.executeSingle(request, username);
     }
 
     private BatchExecutionResponse failure(int status, String message) {

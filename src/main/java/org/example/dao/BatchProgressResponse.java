@@ -9,18 +9,12 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class BatchProgressResponse {
-    private String executeKey;
-    private String runId;
+public class BatchProgressResponse<T> {
     private double percent;
     private String status;
-    private BatchExecutionResponse result;
+    private T result;
 
-    public BatchProgressResponse(String executeKey, double percent, String status) {
-        this(executeKey, null, percent, status, null);
-    }
-
-    public BatchProgressResponse(String executeKey, double percent, String status, BatchExecutionResponse result) {
-        this(executeKey, null, percent, status, result);
+    public BatchProgressResponse(double percent, String status) {
+        this(percent, status, null);
     }
 }

@@ -12,7 +12,6 @@ public class BatchExecutionResponse {
     @JsonIgnore
     private int status = 200;
     private String retn;
-    private String runId;
     private String description;
     private String serverName;
     private String host;
